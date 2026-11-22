@@ -22,7 +22,8 @@ Webtoon Downloader: a local Python app that downloads episodes from comic.naver.
 - Keep it dependency-light: standard library first, then the packages already in `requirements.txt`.
 - Don't commit `.venv/`, `__pycache__/`, `.translations/` or downloaded episodes. `.gitignore` covers only the first two, so don't `git add` the rest.
 - Translation results are cached in `.translations/`. Delete the cache entry when testing changes to translation or lettering.
-- Don't add automated downloading of paid or locked episodes. The tool is for free episodes only.
+- Never buy, unlock or bypass paid episodes. Signed-in users (accounts.py) may download episodes their own account has already unlocked; everything else is free episodes only.
+- Translation must only reletter speech balloons and narration on plain backgrounds. Never paint over artwork, titles, logos or sound effects.
 
 ## Testing
 - There is no test suite. Check changes by running `./run.sh` and trying the affected flow, or the CLI: `.venv/bin/python webtoon_dl.py URL --list`.

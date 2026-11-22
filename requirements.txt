@@ -3,4 +3,4 @@ certifi
 anthropic
 numpy
 pywebview
-pyobjc-framework-Vision
+pyobjc-framework-Vision; sys_platform == "darwin"

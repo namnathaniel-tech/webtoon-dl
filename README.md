@@ -1,48 +1,82 @@
 # Webtoon Downloader
 
-Download free episodes from **comic.naver.com** (Korean), **webtoons.com** (English etc.) and **mangadex.org** (manga, any translation language) for offline reading.
+Download free episodes from **Naver Webtoon** (comic.naver.com, Korean), **WEBTOON** (webtoons.com, English and other languages) and **MangaDex** (manga in many languages), read them in a built-in reader, and optionally translate Korean episodes into English.
 
-## Run the app
+Runs on your own Mac in your browser. Nothing is uploaded anywhere.
+
+## Install (Mac)
+
+You need **Python 3.10 or newer**. If you're not sure, install the latest from [python.org/downloads](https://www.python.org/downloads/) (the macOS installer).
+
+**Option A: with Terminal**
 
 ```sh
+git clone https://github.com/namnathaniel-tech/webtoon-dl.git
+cd webtoon-dl
 ./run.sh
 ```
 
-First run creates `.venv` with Pillow (PDF) and certifi (HTTPS). Opens http://127.0.0.1:8765.
-Paste a series or episode link → pick episodes → choose Images / CBZ / PDF → Download.
-Default save folder: `~/Downloads/Webtoons/<series>/`.
+**Option B: without Terminal**
 
-## Reader
+1. On this page click **Code → Download ZIP**, then unzip it (for example into your Documents folder).
+2. Open the folder and double-click **Webtoon Downloader.command**.
+3. The first time, macOS may say it can't verify the file. Right-click it, choose **Open**, then **Open** again. You only need to do this once.
 
-Everything you download shows up under **Your library** on the home page (the save folder, `~/Downloads/Webtoons` by default).
+The first start takes a minute while it installs what it needs. Then the app opens at **http://127.0.0.1:8765**. Keep the Terminal window open while you use it; close it to quit.
 
-- **Scroll mode** joins the images into one seamless strip and attaches the next episode as you reach the end, so reading never stops.
-- **Pages mode** shows one page at a time (tap or click the left/right side, or use the arrow keys), with a left-to-right or right-to-left switch for manga. Each series picks scroll or pages from the shape of its pages, and remembers your choice.
-- **EN / Original** switches between the translated and original version when both exist.
-- **Width** cycles 600 / 760 / 960 px / full width.
-- It remembers where you stopped in each series ("Continue: …") and marks episodes you've finished.
+Next time, run `./run.sh` from the `webtoon-dl` folder or double-click **Webtoon Downloader.command** again. (`./run.sh` only works from inside the folder; from anywhere else use the full path, e.g. `~/Documents/webtoon-dl/run.sh`.)
+
+## Use it
+
+1. Pick a site on the home page.
+2. Paste a series or episode link from that site and click **Load**.
+3. Tick the episodes you want, choose **Images**, **CBZ** or **PDF**, and click **Download**.
+
+Downloads go to `~/Downloads/Webtoons/<series>/` and show up under **Your library** on the home page, with the series' cover art and AniList info (other titles, genres, status, description).
+
+### Reader
+
+- **Scroll mode** joins the images into one seamless strip and attaches the next episode as you reach the end.
+- **Pages mode** shows one page at a time (tap or click the sides, or use the arrow keys), with a left-to-right / right-to-left switch for manga.
+- The top bar hides while you read; scroll up a little to bring it back. The thin bar on the left edge shows how far you are through the episode. Click or drag it to jump.
+- It remembers where you stopped in each series and marks finished episodes.
 - Keys: `N`/`P` next/previous episode, `M` mode, `W` width, `Space` page down, `Esc` back.
 
-## CLI
+## Translate to English
+
+1. Get a free DeepL API key: sign up for **DeepL API Free** at [deepl.com/pro-api](https://www.deepl.com/pro-api) (500,000 characters a month, no charge).
+2. In the app, open a series, click **Translation key** next to the Download button, paste the key and click **Save key**. It's checked with DeepL and saved only on your Mac.
+3. Tick **Translate to English** before downloading.
+
+How it works: macOS text recognition finds the text in each speech balloon, DeepL translates it, and the app erases the Korean and letters the English in the same balloon. Sound effects, titles and anything drawn over artwork are left as drawn. A script (original → English) is saved next to the episode.
+
+It's machine translation and machine lettering, so expect plain wording and the odd misplaced line, especially on pages full of small on-screen text.
+
+Advanced: instead of DeepL you can use Groq (`GROQ_API_KEY`) or Claude (`ANTHROPIC_API_KEY`) by setting the key in the terminal before `./run.sh`. These follow the rules in `translation_guide.md`.
+
+## Signing in (optional)
+
+On the Naver or WEBTOON page, **Sign in** opens that site's own login page in a small window. The app never sees your password; it only keeps the site's login cookies, privately on your Mac. **Sign out** deletes them. Signed in, you can download episodes your account has already unlocked and age-restricted titles your account can open. The app never buys or unlocks anything.
+
+## Command line
 
 ```sh
 .venv/bin/python webtoon_dl.py URL --list
 .venv/bin/python webtoon_dl.py URL --start 1 --end 10 --format cbz -o ~/Downloads/Webtoons
+.venv/bin/python webtoon_dl.py URL --start 1 --end 1 --translate
 ```
 
-## Translate to English
+## Troubleshooting
 
-Tick **Translate to English** before downloading (CLI: `--translate`). Uses DeepL when a DeepL key is set in `DEEPL_API_KEY` or saved in `~/Library/Application Support/webtoon-dl/deepl.key`: macOS text recognition (Vision) finds each balloon's text and DeepL translates it; sound effects aren't translated and the translation guide isn't used. Otherwise it uses Groq (`qwen/qwen3.8-27b`) when a Groq key is set in `GROQ_API_KEY` or saved in `~/Library/Application Support/webtoon-dl/groq.key`; otherwise Claude with `ANTHROPIC_API_KEY`. Keys are never stored in the repo.
-
-- Claude (Opus 5.5) reads the episode in slices, cut at the blank gaps between panels, and translates every balloon, caption and sound effect using `translation_guide.md`, a condensed version of the Korean translation and lettering notes.
-- The app erases the original text and letters the English in all caps with Comic Neue (open font licence), shaped to fit the balloon, at one size per episode, with bold italic for emphasis. Sound effects get a small English label next to the art instead of being erased.
-- Saved next to the pages: `<episode> [EN] - script.md` (original → English, line by line) and `glossary.json` (names and terms, reused for later episodes of the same series).
-- Results are cached in `.translations/`, so downloading the same episode again (for example as CBZ) doesn't call the API again.
-- Cost: roughly $1 per Naver episode. It's machine lettering, so expect the odd leftover Korean stroke where text touches a balloon outline.
+- **"zsh: no such file or directory: ./run.sh"**: you're not in the app's folder. `cd` into it first, or use the full path to `run.sh`.
+- **"Port 8765 is already in use"**: the app is already running; it opens that one. To run a second copy: `WEBTOON_PORT=8766 ./run.sh`.
+- **A download seems stuck**: if the Terminal window was closed or the app restarted, the page tells you; click **Download** again.
+- **"Needs Python 3.10 or newer"**: install Python from python.org, then run again.
 
 ## Limits
 
-- Paid, locked, and login-only episodes (including adult titles) are skipped; it doesn't get around paywalls.
-- MangaDex chapters that only link to an official site (e.g. MANGA Plus) show as locked. Use `--lang ko` etc. on the CLI, or the language menu in the app.
-- For personal offline reading only — don't redistribute.
-- If a site changes its page layout, the regexes in `webtoon_dl.py` (`_naver_images`, `_webtoons_images`) are what to update.
+- Paid and locked episodes download only if your signed-in account has already unlocked them; this doesn't get around paywalls.
+- MangaDex chapters that only link to an official site (e.g. MANGA Plus) show as locked.
+- Translation needs macOS (it uses the built-in text recognition).
+- For personal offline reading only. Don't redistribute downloaded or translated episodes.
+- If a site changes its page layout, the parsers in `webtoon_dl.py` (`_naver_images`, `_webtoons_images`) are what to update.

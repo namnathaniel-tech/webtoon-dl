@@ -142,7 +142,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/accounts":
             return self._send(200, accounts.status())
         if self.path == "/api/config":
-            return self._send(200, {"outDir": wd.DEFAULT_OUT, "pdf": _has_pil(), "translate": _can_translate()})
+            return self._send(200, {"outDir": wd.DEFAULT_OUT, "pdf": _has_pil(), "translate": _can_translate(),
+                                    "provider": _provider()})
         if self.path.startswith("/api/jobs/"):
             job = _jobs.get(self.path.rsplit("/", 1)[1])
             if not job:
@@ -168,6 +169,16 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
         except Exception:
             return self._send(400, {"error": "bad json"})
+        if self.path == "/api/deepl-key":
+            origin = self.headers.get("Origin", "")
+            if origin and origin not in (f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"):
+                return self._send(403, {"error": "forbidden"})
+            try:
+                import translate
+                translate.save_deepl_key(str(body.get("key", "")))
+            except Exception as e:
+                return self._send(400, {"error": str(e)})
+            return self._send(200, {"translate": _can_translate(), "provider": _provider()})
         if self.path in ("/api/accounts/signin", "/api/accounts/signout"):
             # only this app's own page may sign in/out (not some other website in the browser)
             origin = self.headers.get("Origin", "")
@@ -235,6 +246,14 @@ def _can_translate() -> bool:
         return translate.available()
     except ImportError:
         return False
+
+
+def _provider() -> str:
+    try:
+        import translate
+        return translate.provider()
+    except ImportError:
+        return ""
 
 
 def _has_pil() -> bool:

@@ -79,6 +79,8 @@
   .tr-opt { display: flex; align-items: center; gap: 6px; user-select: none; cursor: pointer; white-space: nowrap; }
   .tr-opt.off { opacity: .5; cursor: default; }
   .tr-note { flex-basis: 100%; color: var(--muted); font-size: 12.5px; }
+  .key-link { font-size: 12.5px; }
+  .key-box { flex-basis: 100%; font-size: 13px; background: var(--hover); border-radius: 8px; padding: 10px 12px; }
   .bar { height: 6px; background: var(--hover); border-radius: 3px; overflow: hidden; margin: 8px 0; }
   .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
   .job { padding: 14px; }
@@ -212,8 +214,18 @@
         <label class="tr-opt" id="trOpt" title="">
           <input type="checkbox" id="translate"> Translate to English
         </label>
+        <a id="keyLink" class="key-link">Translation key</a>
         <input type="text" id="outDir" title="Save to">
         <button class="primary" id="dlBtn" type="button">Download</button>
+        <div class="key-box hidden" id="keyBox">
+          <div>Translation uses <b>DeepL</b>. Get a free key at <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener">deepl.com/pro-api</a> (DeepL API Free, 500,000 characters a month), then paste it here. It's saved only on this Mac.</div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="keyInput" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px">
+            <button class="primary" id="keySave" type="button">Save key</button>
+            <button id="keyRemove" type="button" class="hidden">Remove</button>
+          </div>
+          <div class="muted" id="keyMsg" style="margin-top:6px"></div>
+        </div>
         <div class="tr-note hidden" id="trNote">With a DeepL key, macOS text recognition reads each balloon and DeepL translates it (fast, free up to 500k characters a month; sound effects stay as they are). Without one, an AI model (Groq or Claude) reads and translates the pages using your translation guide. The English is lettered into the balloons; a script (original → English) and a series glossary are saved next to the files.</div>
       </div>
     </section>
@@ -314,12 +326,31 @@ async function api(path, body) {
   return j;
 }
 
+function applyTranslateState(c) {
+  $("translate").disabled = !c.translate; $("trOpt").classList.toggle("off", !c.translate);
+  $("trOpt").title = c.translate ? "" : "Add a free DeepL key first (Translation key).";
+  $("keyLink").textContent = c.provider === "deepl" ? "Translation key ✓" : "Translation key";
+  $("keyRemove").classList.toggle("hidden", c.provider !== "deepl");
+  if (!c.translate) $("translate").checked = false;
+}
+$("keyLink").onclick = () => $("keyBox").classList.toggle("hidden");
+$("trOpt").onclick = () => { if ($("translate").disabled) $("keyBox").classList.remove("hidden"); };
+$("keySave").onclick = async () => {
+  $("keyMsg").textContent = "Checking the key with DeepL…"; $("keySave").disabled = true;
+  try {
+    const c = await api("/api/deepl-key", { key: $("keyInput").value });
+    applyTranslateState(c); $("keyInput").value = "";
+    $("keyMsg").textContent = "Saved. Translate to English is ready.";
+  } catch (e) { $("keyMsg").textContent = e.message; }
+  finally { $("keySave").disabled = false; }
+};
+$("keyRemove").onclick = async () => {
+  const c = await api("/api/deepl-key", { key: "" }); applyTranslateState(c);
+  $("keyMsg").textContent = "Key removed from this Mac.";
+};
 fetch("/api/config").then(r => r.json()).then(c => {
   $("outDir").value = c.outDir;
-  if (!c.translate) {
-    $("translate").disabled = true; $("trOpt").classList.add("off");
-    $("trOpt").title = "Save a DeepL or Groq key (or set ANTHROPIC_API_KEY), then restart the app.";
-  }
+  applyTranslateState(c);
   if (!c.pdf) { const o = $("format").querySelector('[value=pdf]'); o.disabled = true; o.textContent += " — needs Pillow"; }
 });
 

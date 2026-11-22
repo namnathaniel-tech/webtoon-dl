@@ -113,6 +113,39 @@ DEEPL_LANGS = {"ko": "KO", "ja": "JA", "zh": "ZH", "zh-hant": "ZH", "zh-hk": "ZH
                "it": "IT", "th": "TH", "vi": "VI"}
 
 
+def save_deepl_key(key: str) -> None:
+    """Check the key with DeepL, then store it privately (0600) outside the repo. '' removes it."""
+    import urllib.error
+    import urllib.request
+    key = key.strip()
+    if not key:
+        try:
+            os.remove(DEEPL_KEY_FILE)
+        except OSError:
+            pass
+        return
+    host = "api-free.deepl.com" if key.endswith(":fx") else "api.deepl.com"
+    req = urllib.request.Request(f"https://{host}/v2/usage", headers={
+        "Authorization": "DeepL-Auth-Key " + key, "User-Agent": "webtoon-dl/1.0"})
+    import ssl
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    try:
+        urllib.request.urlopen(req, timeout=20, context=ctx).read()
+    except urllib.error.HTTPError as e:
+        raise TranslateError("DeepL didn't accept that key." if e.code in (401, 403)
+                             else f"DeepL error {e.code}; try again.")
+    except urllib.error.URLError:
+        raise TranslateError("Couldn't reach DeepL to check the key (network).")
+    os.makedirs(os.path.dirname(DEEPL_KEY_FILE), exist_ok=True)
+    fd = os.open(DEEPL_KEY_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(key + "\n")
+
+
 def deepl_key() -> str:
     k = os.environ.get("DEEPL_API_KEY", "").strip()
     if not k:
