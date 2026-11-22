@@ -1,2 +1,6 @@
 Pillow
 certifi
+anthropic
+numpy
+pywebview
+pyobjc-framework-Vision

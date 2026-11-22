@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Webtoon/manga downloader for comic.naver.com, webtoons.com and mangadex.org.
 
-Only fetches episodes that are freely viewable without logging in or paying.
-Locked / paid / adult-gated episodes are skipped.
+Without an account it only fetches episodes that are free to view. If you sign in to Naver
+or WEBTOON in the app (accounts.py), requests to that site carry your login, so episodes
+your account has already unlocked, and age-gated titles your account can open, work too.
+Nothing is ever bought or unlocked on your behalf.
 
 CLI usage:
     python3 webtoon_dl.py URL [--start N] [--end N] [--format images|cbz|pdf] [-o DIR]
@@ -23,6 +25,8 @@ import urllib.request
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+
+import accounts
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
@@ -59,6 +63,9 @@ def fetch(url: str, referer: str | None = None, retries: int = 3, ua: str = UA) 
     headers = {"User-Agent": ua, "Accept-Language": "ko,en;q=0.8"}
     if referer:
         headers["Referer"] = referer
+    cookie = accounts.cookie_header(host)
+    if cookie:
+        headers["Cookie"] = cookie
     last = None
     for attempt in range(retries):
         try:
@@ -118,6 +125,7 @@ class Series:
             "site": self.site, "titleId": self.title_id, "title": self.title,
             "url": self.url, "thumbnail": self.thumbnail, "lang": self.lang,
             "languages": self.languages, "preselect": self.preselect,
+            "signedIn": self.site in accounts.SITES and accounts.signed_in(self.site),
             "episodes": [e.__dict__ for e in self.episodes],
         }
 
@@ -136,9 +144,11 @@ def _naver_series(url: str, parsed: urllib.parse.ParseResult) -> Series:
     try:
         info = fetch_json(f"https://comic.naver.com/api/article/list/info?titleId={tid}", ref)
     except urllib.error.HTTPError as e:
-        raise WebtoonError(f"Naver refused this title (HTTP {e.code}). Adult titles need a login and aren't supported.")
-    if info.get("adult"):
-        raise WebtoonError("This is an adult-only title that requires a Naver login; not supported.")
+        hint = ("your Naver account may not be age-verified for it" if accounts.signed_in("naver")
+                else "adult titles need you to sign in to Naver first (Accounts, top right)")
+        raise WebtoonError(f"Naver refused this title (HTTP {e.code}); {hint}.")
+    if info.get("adult") and not accounts.signed_in("naver"):
+        raise WebtoonError("This is an adult-only title. Sign in to Naver first (Accounts, top right).")
     s = Series("naver", tid, info.get("titleName", f"title {tid}"), url,
                info.get("thumbnailUrl", ""), naver_kind=kind)
 
@@ -322,6 +332,16 @@ def _mangadex_images(s: Series, no: int) -> tuple[list[str], str]:
 
 # ---------------------------------------------------------------- public API
 
+def source_language(s: Series) -> str:
+    """Language the downloaded pages are written in (for the translator)."""
+    if s.site == "naver":
+        return "ko"
+    if s.site == "webtoons":
+        m = re.search(r"webtoons\.com/([a-z]{2}(?:-[a-z]+)?)/", s.url)
+        return m.group(1) if m else ""
+    return s.lang
+
+
 def get_series(url: str, lang: str | None = None) -> Series:
     url = url.strip()
     if not re.match(r"https?://", url):
@@ -352,45 +372,126 @@ def _ext(url: str) -> str:
     return ext if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp") else ".jpg"
 
 
+def cover_url(s: Series) -> str:
+    """Best available cover-art URL for a series (bigger than the list thumbnail where possible)."""
+    u = s.thumbnail or ""
+    if s.site == "mangadex":
+        u = re.sub(r"\.256\.jpg$", ".512.jpg", u)
+    return u
+
+
+def mangadex_cover_by_title(title: str) -> str | None:
+    """Cover URL for the MangaDex title whose name matches `title` exactly (case-insensitive)."""
+    q = urllib.parse.urlencode({"title": title, "limit": 10, "includes[]": "cover_art"})
+    want = title.strip().lower()
+    for d in _md(f"/manga?{q}").get("data", []):
+        a = d.get("attributes", {})
+        names = list(a.get("title", {}).values()) + [v for t in a.get("altTitles", []) for v in t.values()]
+        if any(n.strip().lower() == want for n in names):
+            fn = next((r.get("attributes", {}).get("fileName") for r in d["relationships"]
+                       if r["type"] == "cover_art"), None)
+            if fn:
+                return f"https://uploads.mangadex.org/covers/{d['id']}/{fn}.512.jpg"
+    return None
+
+
+def save_cover(s: Series, series_dir: str) -> str | None:
+    """Write <series>/cover.jpg (the series' real cover art) and series.json once."""
+    meta = os.path.join(series_dir, "series.json")
+    if not os.path.exists(meta):
+        with open(meta, "w", encoding="utf-8") as f:
+            json.dump({"site": s.site, "title": s.title, "url": s.url, "cover": cover_url(s)}, f,
+                      ensure_ascii=False, indent=1)
+    path = os.path.join(series_dir, "cover.jpg")
+    if os.path.exists(path):
+        return path
+    u = cover_url(s)
+    if not u:
+        return None
+    ref = {"naver": "https://comic.naver.com/", "webtoons": "https://www.webtoons.com/"}.get(s.site)
+    try:
+        data = fetch(u, ref)
+    except Exception:
+        return None
+    with open(path, "wb") as f:
+        f.write(data)
+    return path
+
+
 def download_episode(s: Series, ep: Episode, out_root: str, fmt: str,
-                     on_image=None) -> str:
-    """Download one episode. Returns the path written."""
+                     on_image=None, translate: bool = False, on_translate=None) -> str:
+    """Download one episode (optionally translated to English). Returns the path written."""
     urls, referer = episode_images(s, ep.no)
     if not urls:
-        raise WebtoonError("no images (locked, paid, or login-only episode)")
+        if s.site in accounts.SITES and accounts.signed_in(s.site):
+            raise WebtoonError("no images: this episode isn't unlocked on your account")
+        raise WebtoonError("no images (locked, paid, or login-only episode; signing in may help)")
     series_dir = os.path.join(out_root, safe_name(s.title))
     os.makedirs(series_dir, exist_ok=True)
+    save_cover(s, series_dir)
     name = safe_name(f"{ep.no:04d} - {ep.title}" if ep.title else f"{ep.no:04d}")
+
+    stopped = []   # set once on_image raises (e.g. the user cancelled): skip the remaining images
 
     def grab(item):
         i, u = item
+        if stopped:
+            raise stopped[0]
         data = fetch(u, referer)
         if on_image:
-            on_image()
+            try:
+                on_image()
+            except Exception as e:
+                stopped.append(e)
+                raise
         return i, u, data
 
     with ThreadPoolExecutor(6) as pool:
-        results = sorted(pool.map(grab, enumerate(urls)))
+        futures = [pool.submit(grab, it) for it in enumerate(urls)]
+        try:
+            results = sorted(f.result() for f in futures)
+        except Exception:
+            for f in futures:
+                f.cancel()
+            raise
+    files = [(f"{i + 1:03d}{_ext(u)}", data) for i, u, data in results]
 
+    if translate:
+        import translate as tr
+        strip = s.site in ("naver", "webtoons")   # vertical-scroll strips vs. manga pages
+        try:
+            files, script = tr.translate_episode([d for _, d in files], s.title, series_dir,
+                                                 ep.title or f"#{ep.no}", strip, on_translate,
+                                                 source_lang=source_language(s))
+        except tr.TranslateError as e:
+            raise WebtoonError(str(e))
+        name += " [EN]"
+        with open(os.path.join(series_dir, name + " - script.md"), "w", encoding="utf-8") as f:
+            f.write(script)
+
+    return save_pages(files, series_dir, name, fmt)
+
+
+def save_pages(files: list[tuple[str, bytes]], series_dir: str, name: str, fmt: str) -> str:
     if fmt == "images":
         d = os.path.join(series_dir, name)
         os.makedirs(d, exist_ok=True)
-        for i, u, data in results:
-            with open(os.path.join(d, f"{i + 1:03d}{_ext(u)}"), "wb") as f:
+        for fn, data in files:
+            with open(os.path.join(d, fn), "wb") as f:
                 f.write(data)
         return d
     if fmt == "cbz":
         path = os.path.join(series_dir, name + ".cbz")
         with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as z:
-            for i, u, data in results:
-                z.writestr(f"{i + 1:03d}{_ext(u)}", data)
+            for fn, data in files:
+                z.writestr(fn, data)
         return path
     if fmt == "pdf":
         try:
             from PIL import Image
         except ImportError:
             raise WebtoonError("PDF needs Pillow: run `pip install Pillow` (or use ./run.sh)")
-        pages = [Image.open(io.BytesIO(data)).convert("RGB") for _, _, data in results]
+        pages = [Image.open(io.BytesIO(data)).convert("RGB") for _, data in files]
         path = os.path.join(series_dir, name + ".pdf")
         pages[0].save(path, save_all=True, append_images=pages[1:], resolution=96)
         return path
@@ -408,6 +509,7 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--out", default=DEFAULT_OUT)
     ap.add_argument("--list", action="store_true", help="just list episodes")
     ap.add_argument("--lang", help="MangaDex translation language, e.g. en, ko, es (default: en)")
+    ap.add_argument("--translate", action="store_true", help="translate into English (DeepL if a DeepL key is set, else Groq, else Claude)")
     a = ap.parse_args(argv)
 
     try:
@@ -427,7 +529,8 @@ def main(argv=None) -> int:
             print(f"  skip {e.no} (locked/paid)")
             continue
         try:
-            path = download_episode(s, e, a.out, a.format)
+            path = download_episode(s, e, a.out, a.format, translate=a.translate,
+                                    on_translate=lambda i, n: print(f"       translating {i}/{n}", end="\r"))
             print(f"  ok   {e.no}  -> {path}")
         except Exception as ex:
             print(f"  fail {e.no}: {ex}")

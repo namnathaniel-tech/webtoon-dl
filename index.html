@@ -22,7 +22,7 @@
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   input[type=text], select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line);
          border-radius: 6px; padding: 8px 10px; outline: none; }
-  input[type=text]:focus, select:focus { border-color: var(--accent); }
+  input[type=text]:focus, select:focus { border-color: var(--site, var(--accent)); }
   #url { flex: 1; min-width: 220px; }
   button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text);
            border-radius: 6px; padding: 8px 14px; cursor: pointer; }
@@ -30,6 +30,32 @@
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
   button.primary:hover:not(:disabled) { filter: brightness(1.05); background: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
+
+  /* home */
+  .sites { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .site-card { text-align: left; padding: 16px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px;
+               background: var(--panel); border: 1px solid var(--line); }
+  .site-card:hover:not(:disabled) { border-color: var(--site); background: var(--panel); }
+  .site-card .logo { width: 44px; height: 44px; border-radius: 10px; display: block; object-fit: cover; }
+  .site-card strong { font-size: 15px; }
+  .site-card .muted { font-size: 13px; }
+  .site-card .host { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  /* site view */
+  .crumb { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .crumb button { padding: 4px 10px; }
+  .crumb .logo { width: 28px; height: 28px; border-radius: 7px; display: block; object-fit: cover; }
+  .crumb h1 { margin: 0; }
+  .acct { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .acct .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .acct.on .dot { background: var(--accent); }
+  .acct button { padding: 4px 10px; font-size: 13px; }
+  .ep.locked.ok { opacity: 1; cursor: pointer; }
+  .ep.locked.ok .tag { color: var(--site, var(--accent)); border-color: var(--site, var(--accent)); }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .hint code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+               background: var(--hover); padding: 1px 5px; border-radius: 4px; }
+
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-top: 16px; }
   .series-head { display: flex; gap: 14px; padding: 14px; border-bottom: 1px solid var(--line); align-items: center; }
   .series-head img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--hover); }
@@ -50,6 +76,9 @@
   .foot { padding: 12px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); }
   .foot #outDir { flex: 1; min-width: 200px; }
   .err { color: var(--danger); margin-top: 10px; min-height: 1em; }
+  .tr-opt { display: flex; align-items: center; gap: 6px; user-select: none; cursor: pointer; white-space: nowrap; }
+  .tr-opt.off { opacity: .5; cursor: default; }
+  .tr-note { flex-basis: 100%; color: var(--muted); font-size: 12.5px; }
   .bar { height: 6px; background: var(--hover); border-radius: 3px; overflow: hidden; margin: 8px 0; }
   .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
   .job { padding: 14px; }
@@ -61,48 +90,180 @@
              border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   a { color: var(--accent); cursor: pointer; }
+
+  /* ---------- library ---------- */
+  .section-h { display: flex; align-items: baseline; justify-content: space-between; margin: 26px 0 10px; }
+  .section-h h2 { font-size: 15px; margin: 0; }
+  .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+  .book { text-align: left; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
+  .book:hover { background: none; }
+  .book .cv { aspect-ratio: 3 / 4; width: 100%; border-radius: 8px; background: var(--hover) center top / cover no-repeat;
+              border: 1px solid var(--line); transition: transform .15s; }
+  .book:hover .cv { transform: translateY(-2px); }
+  .book .nm { font-weight: 600; margin-top: 6px; font-size: 13.5px; line-height: 1.3;
+              overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .book .mt { color: var(--muted); font-size: 12px; }
+  .lib-head { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+  .lib-head .cv { width: 110px; aspect-ratio: 3/4; border-radius: 8px; background: var(--hover) center top / cover; border: 1px solid var(--line); }
+  .lib-head h1 { margin-bottom: 4px; }
+  .genres { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .genres span { font-size: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; color: var(--muted); }
+  .lib-desc { margin: 0 0 16px; max-width: 70ch; line-height: 1.55; }
+  .lib-desc p { margin: 0; white-space: pre-line; }
+  .lib-desc.clamp p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .ep-list .ep { cursor: pointer; }
+  .ep-list .ep.read .t { color: var(--muted); }
+  .tag.en { color: var(--accent); border-color: var(--accent); }
+
+  /* ---------- reader ---------- */
+  #reader { position: fixed; inset: 0; background: #111; color: #eee; z-index: 50; display: flex; flex-direction: column; }
+  #reader.hidden { display: none; }
+  .rbar { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: 8px;
+          padding: 8px 12px; background: rgba(17,17,17,.92); backdrop-filter: blur(8px);
+          border-bottom: 1px solid #2a2a2a; transition: transform .2s; }
+  .rbar.away { transform: translateY(-100%); }
+  .rbar .ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .rbar button, .rbar select { background: #222; color: #eee; border: 1px solid #333; border-radius: 6px; padding: 5px 9px; font: inherit; font-size: 13px; }
+  .rbar button:hover:not(:disabled) { background: #2c2c2c; }
+  .rbar button.on { border-color: var(--accent); color: var(--accent); }
+  .rbar select { max-width: 200px; }
+  .rprog { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--accent); width: 0; }
+  /* left-edge progress rail: how far through this episode; click/drag to jump */
+  #rSide { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; z-index: 3; cursor: pointer;
+           background: rgba(255,255,255,.07); transition: width .15s; }
+  #rSide:hover, #rSide.drag { width: 12px; }
+  #rSide .fill { position: absolute; left: 0; right: 0; top: 0; height: 0; background: var(--accent); }
+  #rSide .tip { position: absolute; left: 16px; transform: translateY(-50%); background: rgba(0,0,0,.75); color: #ddd;
+                font-size: 11px; padding: 2px 6px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none;
+                transition: opacity .15s; }
+  #rSide:hover .tip, #rSide.drag .tip { opacity: 1; }
+  #rscroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+  .strip { margin: 0 auto; width: 100%; max-width: var(--rw, 760px); line-height: 0; }
+  .strip img { display: block; width: 100%; height: auto; margin: 0 0 -1px; background: #1b1b1b; } /* -1px hides seams */
+  .ep-break { line-height: 1.4; text-align: center; color: #888; font-size: 13px; padding: 28px 12px; background: #111; }
+  .ep-break b { display: block; color: #ddd; font-size: 15px; margin-top: 2px; }
+  .ep-end { line-height: 1.4; text-align: center; padding: 40px 12px 80px; color: #888; }
+  .ep-end button { margin: 6px; }
+  /* paged mode */
+  #rpaged { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding-top: 44px; }
+  #rpaged img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+  #rpaged.tall { align-items: flex-start; overflow-y: auto; }
+  #rpaged.tall img { max-height: none; width: min(100%, var(--rw, 760px)); }
+  #rpaged.tall .zone { position: fixed; top: 44px; }
+  #rpaged .zone { position: absolute; top: 0; bottom: 0; width: 35%; cursor: pointer; }
+  #rpaged .zl { left: 0; } #rpaged .zr { right: 0; }
+  .pnum { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.6);
+          padding: 3px 10px; border-radius: 12px; font-size: 12px; color: #ccc; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Webtoon Downloader</h1>
-  <p class="sub">Paste a series or episode link from comic.naver.com, webtoons.com or mangadex.org. Only free episodes are downloaded.</p>
-
-  <form class="row" id="loadForm">
-    <input id="url" type="text" placeholder="https://comic.naver.com/webtoon/list?titleId=…" autocomplete="off" autofocus>
-    <select id="lang" class="hidden" title="MangaDex translation language"></select>
-    <button class="primary" id="loadBtn" type="submit">Load</button>
-  </form>
-  <div class="err" id="err"></div>
-
-  <section class="panel hidden" id="seriesPanel">
-    <div class="series-head">
-      <img id="thumb" alt="">
-      <div>
-        <h2 id="title"></h2>
-        <div class="muted" id="meta"></div>
-      </div>
-    </div>
-    <div class="toolbar">
-      <button id="selAll" type="button">All</button>
-      <button id="selNone" type="button">None</button>
-      <span class="muted">Range</span>
-      <input type="number" id="rFrom" min="1"> – <input type="number" id="rTo" min="1">
-      <button id="selRange" type="button">Select range</button>
-      <span class="muted" id="selCount" style="margin-left:auto"></span>
-    </div>
-    <div class="eps" id="eps"></div>
-    <div class="foot">
-      <select id="format">
-        <option value="images">Images (folder per episode)</option>
-        <option value="cbz">CBZ (comic reader file)</option>
-        <option value="pdf">PDF</option>
-      </select>
-      <input type="text" id="outDir" title="Save to">
-      <button class="primary" id="dlBtn" type="button">Download</button>
+  <!-- HOME -->
+  <section id="home">
+    <h1>Webtoon Downloader</h1>
+    <p class="sub">Pick a site, paste a link, download. Free episodes work right away; sign in to Naver or WEBTOON (inside the site) to also get episodes your account has unlocked.</p>
+    <div class="sites" id="sites"></div>
+    <div id="libSection" class="hidden">
+      <div class="section-h"><h2>Your library</h2><span class="muted" id="libHint">Downloads in your save folder</span></div>
+      <div class="shelf" id="shelf"></div>
     </div>
   </section>
 
+  <!-- SITE VIEW -->
+  <section id="siteView" class="hidden">
+    <div class="crumb">
+      <button id="backBtn" type="button" title="Back to sites">← Sites</button>
+      <img class="logo" id="siteLogo" alt="">
+      <h1 id="siteName"></h1>
+      <div class="acct hidden" id="acct"></div>
+    </div>
+
+    <form class="row" id="loadForm">
+      <input id="url" type="text" autocomplete="off">
+      <select id="lang" class="hidden" title="Translation language"></select>
+      <button class="primary" id="loadBtn" type="submit">Load</button>
+    </form>
+    <p class="hint" id="siteHint"></p>
+    <div class="err" id="err"></div>
+
+    <section class="panel hidden" id="seriesPanel">
+      <div class="series-head">
+        <img id="thumb" alt="">
+        <div>
+          <h2 id="title"></h2>
+          <div class="muted" id="meta"></div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="selAll" type="button">All</button>
+        <button id="selNone" type="button">None</button>
+        <span class="muted">Range</span>
+        <input type="number" id="rFrom" min="1"> – <input type="number" id="rTo" min="1">
+        <button id="selRange" type="button">Select range</button>
+        <span class="muted" id="selCount" style="margin-left:auto"></span>
+      </div>
+      <div class="eps" id="eps"></div>
+      <div class="foot">
+        <select id="format">
+          <option value="images">Images (folder per episode)</option>
+          <option value="cbz">CBZ (comic reader file)</option>
+          <option value="pdf">PDF</option>
+        </select>
+        <label class="tr-opt" id="trOpt" title="">
+          <input type="checkbox" id="translate"> Translate to English
+        </label>
+        <input type="text" id="outDir" title="Save to">
+        <button class="primary" id="dlBtn" type="button">Download</button>
+        <div class="tr-note hidden" id="trNote">With a DeepL key, macOS text recognition reads each balloon and DeepL translates it (fast, free up to 500k characters a month; sound effects stay as they are). Without one, an AI model (Groq or Claude) reads and translates the pages using your translation guide. The English is lettered into the balloons; a script (original → English) and a series glossary are saved next to the files.</div>
+      </div>
+    </section>
+  </section>
+
+  <!-- LIBRARY: one series -->
+  <section id="libView" class="hidden">
+    <div class="crumb">
+      <button id="libBack" type="button">← Home</button>
+    </div>
+    <div class="lib-head">
+      <div class="cv" id="libCover"></div>
+      <div>
+        <h1 id="libName"></h1>
+        <div class="muted" id="libAlt"></div>
+        <div class="muted" id="libMeta"></div>
+        <div class="genres" id="libGenres"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="primary" id="libContinue" type="button">Start reading</button>
+        </div>
+      </div>
+    </div>
+    <div class="lib-desc hidden" id="libDesc"><p id="libDescText"></p><a id="libMore" class="hidden">More</a></div>
+    <div class="panel ep-list"><div class="eps" id="libEps" style="max-height:none"></div></div>
+  </section>
+
+  <!-- READER -->
+  <div id="reader" class="hidden">
+    <div class="rbar" id="rbar">
+      <button id="rClose" type="button" title="Back (Esc)">←</button>
+      <div class="ttl" id="rTitle"></div>
+      <select id="rEp" title="Episode"></select>
+      <button id="rPrev" type="button" title="Previous episode (P)">‹</button>
+      <button id="rNext" type="button" title="Next episode (N)">›</button>
+      <button id="rLang" type="button" class="hidden" title="Original / English">EN</button>
+      <button id="rMode" type="button" title="Scroll or page by page (M)">Scroll</button>
+      <button id="rDir" type="button" class="hidden" title="Reading direction">L→R</button>
+      <button id="rWidth" type="button" title="Strip width (W)">Width</button>
+      <div class="rprog" id="rProg"></div>
+    </div>
+    <div id="rSide" title="Episode progress (click to jump)"><div class="fill" id="rSideFill"></div><div class="tip" id="rSideTip"></div></div>
+    <div id="rscroll"><div style="height:44px"></div><div id="rstrip"></div></div>
+    <div id="rpaged" class="hidden">
+      <img id="rPage" alt="">
+      <div class="zone zl" id="rZL"></div><div class="zone zr" id="rZR"></div>
+      <div class="pnum" id="rPnum"></div>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD PROGRESS (stays visible across views) -->
   <section class="panel hidden" id="jobPanel">
     <div class="job">
       <div class="row" style="justify-content:space-between">
@@ -120,8 +281,31 @@
 </main>
 
 <script>
+// ---- Sites. To add one: add an entry here + a matching backend in webtoon_dl.py.
+const SITES = [
+  { id: "naver", name: "Naver Webtoon", icon: "/icons/naver.png", color: "#00c73c", host: "comic.naver.com",
+    match: /(^|\.)comic\.naver\.com$/,
+    blurb: "Korean webtoons, including Best Challenge and Challenge.",
+    placeholder: "https://comic.naver.com/webtoon/list?titleId=…",
+    hint: "Open a series (or one episode) on <code>comic.naver.com</code> and copy the address bar." },
+  { id: "webtoons", name: "WEBTOON", icon: "/icons/webtoons.png", color: "#00d564", host: "webtoons.com",
+    match: /(^|\.)webtoons\.com$/,
+    blurb: "Global WEBTOON in English and other languages, plus Canvas.",
+    placeholder: "https://www.webtoons.com/en/…/list?title_no=…",
+    hint: "Copy a series page (<code>…/list?title_no=…</code>) or any episode link." },
+  { id: "mangadex", name: "MangaDex", icon: "/icons/mangadex.png", color: "#ff6740", host: "mangadex.org",
+    match: /(^|\.)mangadex\.org$/,
+    blurb: "Manga in dozens of translation languages.",
+    placeholder: "https://mangadex.org/title/…",
+    hint: "Copy a manga page (<code>/title/…</code>) or chapter (<code>/chapter/…</code>). Choose a language after loading." },
+];
+const LANG_NAMES = { en: "English", ko: "Korean", ja: "Japanese", "ja-ro": "Japanese (romaji)", es: "Spanish",
+  "es-la": "Spanish (LatAm)", fr: "French", de: "German", it: "Italian", "pt-br": "Portuguese (BR)", pt: "Portuguese",
+  ru: "Russian", id: "Indonesian", vi: "Vietnamese", th: "Thai", tr: "Turkish", pl: "Polish", ar: "Arabic",
+  zh: "Chinese", "zh-hk": "Chinese (HK)", uk: "Ukrainian", fil: "Filipino", ms: "Malay" };
+
 const $ = id => document.getElementById(id);
-let series = null, selected = new Set(), jobId = null, pollTimer = null, config = {};
+let site = null, series = null, selected = new Set(), jobId = null, pollTimer = null, lastUrl = "";
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body) } : {});
@@ -131,16 +315,122 @@ async function api(path, body) {
 }
 
 fetch("/api/config").then(r => r.json()).then(c => {
-  config = c; $("outDir").value = c.outDir;
+  $("outDir").value = c.outDir;
+  if (!c.translate) {
+    $("translate").disabled = true; $("trOpt").classList.add("off");
+    $("trOpt").title = "Save a DeepL or Groq key (or set ANTHROPIC_API_KEY), then restart the app.";
+  }
   if (!c.pdf) { const o = $("format").querySelector('[value=pdf]'); o.disabled = true; o.textContent += " — needs Pillow"; }
 });
 
-const LANG_NAMES = { en: "English", ko: "Korean", ja: "Japanese", "ja-ro": "Japanese (romaji)", es: "Spanish",
-  "es-la": "Spanish (LatAm)", fr: "French", de: "German", it: "Italian", "pt-br": "Portuguese (BR)", pt: "Portuguese",
-  ru: "Russian", id: "Indonesian", vi: "Vietnamese", th: "Thai", tr: "Turkish", pl: "Polish", ar: "Arabic",
-  zh: "Chinese", "zh-hk": "Chinese (HK)", uk: "Ukrainian", fil: "Filipino", ms: "Malay" };
-let lastUrl = "";
-const isMangaDex = u => /mangadex\.org/i.test(u);
+// ---- home
+for (const s of SITES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "site-card"; b.style.setProperty("--site", s.color);
+  b.innerHTML = `<img class="logo" alt=""><div><strong></strong><div class="muted"></div></div><span class="host"></span>`;
+  b.querySelector(".logo").src = s.icon;
+  b.querySelector("strong").textContent = s.name;
+  b.querySelector(".muted").textContent = s.blurb;
+  b.querySelector(".host").textContent = s.host;
+  b.onclick = () => { location.hash = s.id; route(); };
+  $("sites").appendChild(b);
+}
+
+function routeSite() {
+  const s = SITES.find(x => x.id === location.hash.slice(1));
+  $("home").classList.toggle("hidden", !!s);
+  $("siteView").classList.toggle("hidden", !s);
+  if (!s) { site = null; document.title = "Webtoon Downloader"; return; }
+  if (site !== s) {
+    site = s; series = null; lastUrl = "";
+    document.documentElement.style.setProperty("--site", s.color);
+    $("siteLogo").src = s.icon; $("siteName").textContent = s.name;
+    $("url").value = ""; $("url").placeholder = s.placeholder;
+    $("siteHint").innerHTML = s.hint;
+    $("err").textContent = "";
+    $("seriesPanel").classList.add("hidden");
+    $("lang").classList.add("hidden"); $("lang").innerHTML = "";
+    document.title = s.name + " · Webtoon Downloader";
+    refreshAccount();
+  }
+  $("url").focus();
+}
+
+// ---- Accounts (Naver / WEBTOON). The site's own login page opens in a separate window;
+// this page never sees the password.
+let acctTimer = null;
+function renderAccount(st) {
+  const box = $("acct");
+  const a = site && st[site.id];
+  box.classList.toggle("hidden", !a);
+  if (!a) return;
+  box.classList.toggle("on", a.signedIn);
+  box.innerHTML = "";
+  const dot = document.createElement("span"); dot.className = "dot";
+  const txt = document.createElement("span");
+  const btn = document.createElement("button"); btn.type = "button";
+  if (a.waiting) {
+    txt.textContent = "Finish signing in in the window that opened…";
+    btn.textContent = "Waiting"; btn.disabled = true;
+  } else if (a.signedIn) {
+    txt.textContent = "Signed in";
+    btn.textContent = "Sign out";
+    btn.title = "Forget this site's login on this Mac";
+    btn.onclick = async () => { renderAccount(await api("/api/accounts/signout", { site: site.id })); reloadIfLoaded(); };
+  } else {
+    txt.textContent = "Not signed in";
+    btn.textContent = "Sign in";
+    btn.title = `Sign in on ${a.label}'s own page to download episodes your account has unlocked`;
+    btn.onclick = async () => { renderAccount(await api("/api/accounts/signin", { site: site.id })); pollAccount(); };
+  }
+  box.append(dot, txt, btn);
+}
+async function refreshAccount() {
+  try { const st = await api("/api/accounts"); renderAccount(st); return st; } catch { $("acct").classList.add("hidden"); }
+}
+function pollAccount() {
+  clearInterval(acctTimer);
+  acctTimer = setInterval(async () => {
+    const st = await refreshAccount();
+    if (!st || !site || !st[site.id] || !st[site.id].waiting) {
+      clearInterval(acctTimer);
+      if (st && site && st[site.id] && st[site.id].signedIn) reloadIfLoaded();
+      else if (st && site && st[site.id]) $("err").textContent = "Sign-in window closed before you finished signing in.";
+    }
+  }, 1500);
+}
+function reloadIfLoaded() { if (series) $("loadForm").requestSubmit(); }
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  const inLib = h.startsWith("library/"), inRead = h.startsWith("read/");
+  $("libView").classList.toggle("hidden", !inLib);
+  if (!inRead && R.series) closeReaderQuiet();
+  if (inLib || inRead) {
+    $("home").classList.add("hidden"); $("siteView").classList.add("hidden");
+    site = null;
+    const go = () => {
+      if (inLib) return renderLibSeries(h.slice(8));
+      const rest = h.slice(5), cut = rest.indexOf("/");
+      if (!R.series) openReader(rest.slice(0, cut), rest.slice(cut + 1), true);
+    };
+    return libData.length ? go() : loadLibrary().then(go);
+  }
+  routeSite();
+  if (!h) loadLibrary();
+}
+function closeReaderQuiet() {
+  saveProgress(true);
+  $("reader").classList.add("hidden"); document.body.style.overflow = ""; $("rstrip").innerHTML = ""; R.series = null;
+}
+window.addEventListener("hashchange", route);
+$("backBtn").onclick = () => { location.hash = ""; };
+$("libBack").onclick = () => { location.hash = ""; };
+
+// ---- load series
+function siteForUrl(u) {
+  try { const h = new URL(/^https?:\/\//.test(u) ? u : "https://" + u).hostname; return SITES.find(s => s.match.test(h)); }
+  catch { return null; }
+}
 function setLangOptions(langs, current) {
   const sel = $("lang"); sel.innerHTML = "";
   for (const l of (langs.length ? langs : [current || "en"])) {
@@ -148,20 +438,17 @@ function setLangOptions(langs, current) {
   }
   sel.value = current;
 }
-$("url").addEventListener("input", () => {
-  const md = isMangaDex($("url").value);
-  $("lang").classList.toggle("hidden", !md);
-  if (md && !$("lang").options.length) setLangOptions(["en"], "en");
-});
-$("lang").onchange = () => { if (series && series.site === "mangadex") $("loadForm").requestSubmit(); };
+$("lang").onchange = () => { if (series) $("loadForm").requestSubmit(); };
 
 $("loadForm").onsubmit = async e => {
   e.preventDefault();
   const url = $("url").value.trim(); if (!url) return;
-  $("err").textContent = ""; $("loadBtn").disabled = true;
-  $("loadBtn").innerHTML = '<span class="spinner"></span> Loading';
-  // new link → let the server pick the language (from a chapter link, or English)
-  const lang = isMangaDex(url) && url === lastUrl ? $("lang").value : "";
+  $("err").textContent = "";
+  const owner = siteForUrl(url);
+  if (!owner) { $("err").textContent = `That doesn't look like a ${site.name} link (${site.host}).`; return; }
+  if (owner !== site) { location.hash = owner.id; route(); $("url").value = url; }   // pasted another supported site: switch to it
+  $("loadBtn").disabled = true; $("loadBtn").innerHTML = '<span class="spinner"></span> Loading';
+  const lang = site.id === "mangadex" && url === lastUrl ? $("lang").value : "";
   try {
     series = await api("/api/series", { url, lang });
     lastUrl = url;
@@ -175,16 +462,22 @@ function renderSeries() {
   $("seriesPanel").classList.remove("hidden");
   $("title").textContent = series.title;
   const free = series.episodes.filter(e => !e.locked).length;
-  const siteName = { naver: "Naver Webtoon", webtoons: "WEBTOON", mangadex: "MangaDex" }[series.site];
   const unit = series.site === "mangadex" ? "chapters" : "episodes";
-  $("meta").textContent = `${siteName} · ${series.episodes.length} ${unit}` +
+  const lockedN = series.episodes.length - free;
+  $("meta").textContent = `${series.episodes.length} ${unit}` +
     (series.site === "mangadex" ? ` · ${LANG_NAMES[series.lang] || series.lang}` : "") +
-    (free < series.episodes.length ? ` · ${free} downloadable` : "");
+    (lockedN ? (series.signedIn ? ` · ${lockedN} locked (downloads if your account has unlocked them)`
+                                : ` · ${free} downloadable` + (series.site !== "mangadex" ? " · sign in for ones you've unlocked" : ""))
+             : "");
   if (!series.episodes.length) $("err").textContent = "No chapters in this language. Try another one from the language menu.";
+  // already English → no point translating
+  const english = series.site === "mangadex" ? series.lang === "en"
+                : series.site === "webtoons" && /webtoons\.com\/en\//.test(series.url);
+  $("trOpt").classList.toggle("hidden", english);
+  if (english) { $("translate").checked = false; $("trNote").classList.add("hidden"); }
   $("thumb").src = series.thumbnail ? "/api/thumb?u=" + encodeURIComponent(series.thumbnail) : "";
   const nos = series.episodes.map(e => e.no);
   $("rFrom").value = nos.length ? Math.min(...nos) : ""; $("rTo").value = nos.length ? Math.max(...nos) : "";
-  // preselect the episode from the link, if any
   selected = new Set();
   const m = $("url").value.match(/[?&](?:no|episode_no)=(\d+)/);
   if (series.preselect) selected.add(series.preselect);
@@ -192,9 +485,10 @@ function renderSeries() {
   const box = $("eps"); box.innerHTML = "";
   for (const ep of series.episodes) {
     const row = document.createElement("label");
-    row.className = "ep" + (ep.locked ? " locked" : "");
-    row.innerHTML = `<input type="checkbox" ${ep.locked ? "disabled" : ""}><span class="no">${ep.no}</span><span class="t"></span>` +
-      (ep.locked ? '<span class="tag">locked</span>' : "");
+    const usable = canPick(ep);
+    row.className = "ep" + (ep.locked ? " locked" : "") + (ep.locked && usable ? " ok" : "");
+    row.innerHTML = `<input type="checkbox" ${usable ? "" : "disabled"}><span class="no">${ep.no}</span><span class="t"></span>` +
+      (ep.locked ? `<span class="tag">${usable ? "locked · uses your account" : "locked"}</span>` : "");
     row.querySelector(".t").textContent = ep.title;
     const cb = row.querySelector("input"); cb.dataset.no = ep.no; cb.checked = selected.has(ep.no);
     cb.onchange = () => { cb.checked ? selected.add(ep.no) : selected.delete(ep.no); updateCount(); };
@@ -203,39 +497,61 @@ function renderSeries() {
   updateCount();
 }
 
+// signed in → locked episodes can be tried (they download only if the account has unlocked them)
+function canPick(ep) { return !ep.locked || (series.signedIn && series.site !== "mangadex"); }
 function setSel(pred) {
-  selected = new Set(series.episodes.filter(e => !e.locked && pred(e)).map(e => e.no));
+  selected = new Set(series.episodes.filter(e => canPick(e) && pred(e)).map(e => e.no));
   $("eps").querySelectorAll("input").forEach(cb => cb.checked = selected.has(+cb.dataset.no));
   updateCount();
 }
-function updateCount() { $("selCount").textContent = `${selected.size} selected`; $("dlBtn").disabled = !selected.size; }
+function updateCount() { $("selCount").textContent = `${selected.size} selected`; $("dlBtn").disabled = !selected.size || !!jobId; }
 $("selAll").onclick = () => setSel(() => true);
 $("selNone").onclick = () => setSel(() => false);
 $("selRange").onclick = () => { const a = +$("rFrom").value, b = +$("rTo").value; setSel(e => e.no >= a && e.no <= b); };
 
+// ---- download
 $("dlBtn").onclick = async () => {
   $("err").textContent = "";
   try {
     const r = await api("/api/download", { key: series.key, episodes: [...selected].sort((a,b)=>a-b),
-                                           format: $("format").value, outDir: $("outDir").value });
+                                           format: $("format").value, outDir: $("outDir").value,
+                                           translate: $("translate").checked });
     jobId = r.jobId; $("jobPanel").classList.remove("hidden"); $("cancelBtn").classList.remove("hidden");
-    $("openFolder").classList.add("hidden"); $("dlBtn").disabled = true;
+    $("openFolder").classList.add("hidden"); updateCount();
     poll();
   } catch (err) { $("err").textContent = err.message; }
 };
-
-$("cancelBtn").onclick = () => api("/api/cancel", { jobId });
+$("cancelBtn").onclick = async () => {
+  $("cancelBtn").disabled = true; $("cancelBtn").textContent = "Cancelling…";
+  try { await api("/api/cancel", { jobId }); } catch (e) { $("err").textContent = e.message; }
+};
+$("translate").onchange = () => $("trNote").classList.toggle("hidden", !$("translate").checked);
 $("openFolder").onclick = () => api("/api/reveal", { path: $("openFolder").dataset.path }).catch(e => $("err").textContent = e.message);
 
+let pollFails = 0;
 async function poll() {
   clearTimeout(pollTimer);
-  const j = await api("/api/jobs/" + jobId);
+  let j;
+  try { j = await api("/api/jobs/" + jobId); pollFails = 0; }
+  catch (e) {
+    // app briefly unreachable: keep trying; job gone (app was restarted): say so instead of spinning forever
+    if (++pollFails < 6 && !/no such job/.test(e.message)) { pollTimer = setTimeout(poll, 1500); return; }
+    pollFails = 0;
+    $("jobStatus").textContent = "This download stopped because the app was restarted. Click Download to start it again.";
+    $("log").innerHTML = "";
+    jobId = null; $("cancelBtn").classList.add("hidden");
+    $("cancelBtn").disabled = false; $("cancelBtn").textContent = "Cancel";
+    if (series) updateCount();
+    return;
+  }
   $("jobTitle").textContent = j.title;
   $("barFill").style.width = (100 * j.done / j.total) + "%";
   const failed = j.items.filter(i => i.state === "failed").length;
   const cur = j.items.find(i => i.state === "downloading");
+  const trCur = j.items.find(i => i.state === "translating" && i.translate);
   $("jobStatus").textContent = j.status === "running"
     ? `${j.done} / ${j.total} episodes` + (cur ? ` — episode ${cur.no} (${cur.images} images)` : "")
+      + (trCur ? ` — translating episode ${trCur.no}: part ${Math.min(trCur.translate[0] + 1, trCur.translate[1])} of ${trCur.translate[1]}` : "")
     : `${j.status === "cancelled" ? "Cancelled" : "Finished"}: ${j.done - failed} saved` + (failed ? `, ${failed} failed` : "");
   $("log").innerHTML = "";
   for (const it of [...j.items].reverse()) {
@@ -246,10 +562,401 @@ async function poll() {
   }
   if (j.status === "running") pollTimer = setTimeout(poll, 700);
   else {
-    $("cancelBtn").classList.add("hidden"); $("dlBtn").disabled = !selected.size;
+    jobId = null; $("cancelBtn").classList.add("hidden"); if (series) updateCount();
+    $("cancelBtn").disabled = false; $("cancelBtn").textContent = "Cancel";
     $("openFolder").dataset.path = j.outDir; $("openFolder").classList.remove("hidden");
+    loadLibrary();
   }
 }
+
+// =====================================================================
+// LIBRARY + READER
+// =====================================================================
+let libRoot = "", libData = [], libSeries = null;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const q = o => Object.entries(o).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+const pageUrl = (s, e, f) => "/lib?" + q({ root: libRoot, s, e, f });
+
+async function loadLibrary() {
+  libRoot = $("outDir").value || libRoot;
+  try { libData = (await api("/api/library?" + q({ root: libRoot }))).series; }
+  catch { libData = []; }
+  renderShelf();
+  // older downloads have no cover art yet: fetch it once in the background, then redraw
+  if (libData.some(s => !s.art || s.info === undefined) && !loadLibrary.backfilled) {
+    loadLibrary.backfilled = true;
+    try {
+      const r = await api("/api/library/covers?" + q({ root: libRoot }));
+      if (r.added) { libData = (await api("/api/library?" + q({ root: libRoot }))).series; renderShelf(); }
+    } catch {}
+  }
+}
+
+async function setCover(el, s) {
+  // the series' real cover art when we have it…
+  if (s.art) {
+    el.style.backgroundImage = `url("/libcover?${q({ root: libRoot, s: s.name, v: s.art })}")`;
+    el.style.backgroundPosition = "center";
+    return;
+  }
+  // …otherwise the first page of the first episode, cropped to the top
+  const e = s.episodes[0], entry = e.original || e.english;
+  try {
+    const p = (await api("/api/library/pages?" + q({ root: libRoot, s: s.name, e: entry }))).pages[0];
+    if (p) el.style.backgroundImage = `url("${pageUrl(s.name, entry, p.file)}")`;
+  } catch {}
+}
+
+function renderShelf() {
+  const box = $("shelf");
+  $("libSection").classList.toggle("hidden", !libData.length);
+  box.innerHTML = "";
+  for (const s of libData) {
+    const prog = store.get("read:" + s.name, null);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "book";
+    b.innerHTML = `<div class="cv"></div><div class="nm"></div><div class="mt"></div>`;
+    b.querySelector(".nm").textContent = s.name;
+    const at = prog && s.episodes.find(e => e.id === prog.ep);
+    b.querySelector(".mt").textContent = at ? "Continue: " + at.title : `${s.episodes.length} episode${s.episodes.length > 1 ? "s" : ""}`;
+    setCover(b.querySelector(".cv"), s);
+    b.onclick = () => { location.hash = "library/" + encodeURIComponent(s.name); };
+    box.appendChild(b);
+  }
+}
+
+function renderLibSeries(name) {
+  libSeries = libData.find(s => s.name === name);
+  if (!libSeries) { location.hash = ""; return; }
+  const s = libSeries, prog = store.get("read:" + s.name, null), done = store.get("done:" + s.name, []);
+  $("libName").textContent = s.name;
+  const en = s.episodes.filter(e => e.english).length;
+  const info = s.info || null;
+  const STATUS = { FINISHED: "Completed", RELEASING: "Ongoing", HIATUS: "On hiatus", CANCELLED: "Cancelled",
+                   NOT_YET_RELEASED: "Not yet released" };
+  const KIND = { KR: "Manhwa", JP: "Manga", CN: "Manhua", TW: "Manhua" };
+  const alt = info ? [info.english, info.romaji].filter(t => t && t !== s.name) : [];
+  $("libAlt").textContent = alt.length ? alt[0] + (alt[1] && alt[1] !== alt[0] ? " · " + alt[1] : "") : "";
+  $("libMeta").textContent = [
+    `${s.episodes.length} episode${s.episodes.length > 1 ? "s" : ""} downloaded` + (en ? ` · ${en} in English` : ""),
+    info && KIND[info.country], info && info.year, info && STATUS[info.status],
+    info && info.score ? `★ ${(info.score / 10).toFixed(1)}` : "",
+  ].filter(Boolean).join(" · ");
+  $("libGenres").innerHTML = "";
+  for (const g of (info && info.genres) || []) { const t = document.createElement("span"); t.textContent = g; $("libGenres").appendChild(t); }
+  if (info && info.url) {
+    const a = document.createElement("a"); a.href = info.url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "AniList ↗"; a.style.fontSize = "12px"; $("libGenres").appendChild(a);
+  }
+  $("libDesc").classList.toggle("hidden", !(info && info.description));
+  $("libDescText").textContent = (info && info.description) || "";
+  $("libDesc").classList.add("clamp");
+  $("libMore").classList.toggle("hidden", !(info && info.description && info.description.length > 280));
+  $("libMore").textContent = "More";
+  $("libMore").onclick = () => { const c = $("libDesc").classList.toggle("clamp"); $("libMore").textContent = c ? "More" : "Less"; };
+  setCover($("libCover"), s);
+  const at = prog && s.episodes.find(e => e.id === prog.ep);
+  $("libContinue").textContent = at ? "Continue: " + at.title : "Start reading";
+  $("libContinue").onclick = () => openReader(s.name, at ? at.id : s.episodes[0].id, !!at);
+  const box = $("libEps"); box.innerHTML = "";
+  for (const e of s.episodes) {
+    const row = document.createElement("div");
+    row.className = "ep" + (done.includes(e.id) ? " read" : "");
+    row.innerHTML = `<span class="t"></span>` + (e.english ? '<span class="tag en">EN</span>' : "") +
+                    (e.original ? "" : '<span class="tag">EN only</span>');
+    row.querySelector(".t").textContent = e.title;
+    row.onclick = () => openReader(s.name, e.id, false);
+    box.appendChild(row);
+  }
+  document.title = s.name + " · Library";
+}
+
+// ---------------- reader state ----------------
+const R = {
+  series: null, idx: 0, lang: "original", mode: "scroll", rtl: false, width: 760,
+  loaded: [],            // episode indexes currently in the strip, in order
+  pages: [], page: 0,    // paged mode
+  lastY: 0, saveT: 0,
+};
+
+function entryFor(ep) {
+  return R.lang === "english" ? (ep.english || ep.original) : (ep.original || ep.english);
+}
+
+function openReader(name, epId, resume) {
+  const s = libData.find(x => x.name === name);
+  if (!s) return;
+  const prefs = store.get("readerPrefs", {});
+  R.series = s;
+  R.idx = Math.max(0, s.episodes.findIndex(e => e.id === epId));
+  R.lang = store.get("lang:" + s.name, s.episodes.some(e => e.english) ? "english" : "original");
+  R.mode = store.get("mode:" + s.name, null); R.rtl = !!prefs.rtl; R.width = prefs.width || 760;
+  location.hash = "read/" + encodeURIComponent(name) + "/" + encodeURIComponent(s.episodes[R.idx].id);
+  $("reader").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  const sel = $("rEp"); sel.innerHTML = "";
+  s.episodes.forEach((e, i) => { const o = document.createElement("option"); o.value = i; o.textContent = e.title; sel.appendChild(o); });
+  const prog = resume ? store.get("read:" + s.name, null) : null;
+  start(prog && prog.ep === s.episodes[R.idx].id ? prog : null);
+}
+
+function closeReader() {
+  saveProgress(true);
+  $("reader").classList.add("hidden");
+  document.body.style.overflow = "";
+  $("rstrip").innerHTML = "";
+  const name = R.series && R.series.name;
+  R.series = null;
+  location.hash = name ? "library/" + encodeURIComponent(name) : "";
+}
+
+function syncBar() {
+  const s = R.series, ep = s.episodes[R.idx];
+  $("rTitle").textContent = `${s.name} — ${ep.title}`;
+  $("rEp").value = R.idx;
+  $("rPrev").disabled = R.idx === 0;
+  $("rNext").disabled = R.idx >= s.episodes.length - 1;
+  const both = s.episodes.some(e => e.english) && s.episodes.some(e => e.original);
+  $("rLang").classList.toggle("hidden", !both);
+  $("rLang").textContent = R.lang === "english" ? "EN" : "Original";
+  $("rLang").classList.toggle("on", R.lang === "english");
+  $("rMode").textContent = R.mode === "scroll" ? "Scroll" : "Pages";
+  $("rDir").classList.toggle("hidden", R.mode !== "paged");
+  $("rDir").textContent = R.rtl ? "R←L" : "L→R";
+  $("rWidth").textContent = R.width >= 9999 ? "Full width" : R.width + "px";
+  $("reader").style.setProperty("--rw", R.width >= 9999 ? "100%" : R.width + "px");
+  history.replaceState(null, "", "#read/" + encodeURIComponent(s.name) + "/" + encodeURIComponent(ep.id));
+  document.title = ep.title + " · " + s.name;
+}
+
+async function getPages(i) {
+  const ep = R.series.episodes[i], entry = entryFor(ep);
+  const r = await api("/api/library/pages?" + q({ root: libRoot, s: R.series.name, e: entry }));
+  return r.pages.map(p => ({ ...p, src: pageUrl(R.series.name, entry, p.file) }));
+}
+
+async function start(resumeAt) {
+  if (!R.mode) {
+    // tall strips (webtoons) read best as one scroll; normal pages (manga) one at a time
+    const ps = await getPages(R.idx);
+    const ratios = ps.map(p => p.h / p.w).sort((a, b) => a - b);
+    R.mode = (ratios[Math.floor(ratios.length / 2)] || 2) > 1.8 ? "scroll" : "paged";
+  }
+  $("rscroll").classList.toggle("hidden", R.mode !== "scroll");
+  $("rpaged").classList.toggle("hidden", R.mode !== "paged");
+  syncBar();
+  if (R.mode === "scroll") {
+    $("rstrip").innerHTML = ""; R.loaded = [];
+    await appendEpisode(R.idx, false);
+    if (resumeAt && resumeAt.frac) {
+      const sec = $("rstrip").querySelector(`[data-i="${R.idx}"]`);
+      requestAnimationFrame(() => { $("rscroll").scrollTop = sec.offsetTop + resumeAt.frac * sec.offsetHeight - 44; });
+    } else $("rscroll").scrollTop = 0;
+  } else {
+    R.pages = await getPages(R.idx);
+    R.page = resumeAt && resumeAt.page ? Math.min(resumeAt.page, R.pages.length - 1) : 0;
+    showPage();
+  }
+}
+
+// ---------- seamless scroll ----------
+async function appendEpisode(i, withBreak) {
+  if (R.loaded.includes(i) || i < 0 || i >= R.series.episodes.length) return;
+  R.loaded.push(i);
+  const pages = await getPages(i);
+  const sec = document.createElement("section");
+  sec.className = "strip"; sec.dataset.i = i;
+  if (withBreak) {
+    const br = document.createElement("div");
+    br.className = "ep-break";
+    br.innerHTML = `Next episode<b></b>`;
+    br.querySelector("b").textContent = R.series.episodes[i].title;
+    sec.appendChild(br);
+  }
+  pages.forEach((p, n) => {
+    const img = document.createElement("img");
+    img.loading = !withBreak && n < 3 ? "eager" : "lazy"; img.decoding = "async";
+    img.width = p.w; img.height = p.h;            // reserves the space: no jumping while loading
+    img.src = p.src; img.alt = "";
+    sec.appendChild(img);
+  });
+  $("rstrip").appendChild(sec);
+  updateEnd();
+}
+
+function updateEnd() {
+  $("rstrip").querySelectorAll(".ep-end").forEach(n => n.remove());
+  const last = Math.max(...R.loaded);
+  const end = document.createElement("div");
+  end.className = "ep-end";
+  if (last >= R.series.episodes.length - 1) {
+    end.innerHTML = `You're all caught up.<br><button type="button">Back to library</button>`;
+    end.querySelector("button").onclick = closeReader;
+  } else {
+    end.textContent = "Loading next episode…";
+  }
+  $("rstrip").appendChild(end);
+}
+
+function currentSection() {
+  const sc = $("rscroll"), mid = sc.scrollTop + sc.clientHeight * 0.35;
+  let cur = null;
+  for (const sec of $("rstrip").querySelectorAll("section.strip")) if (sec.offsetTop <= mid) cur = sec;
+  return cur;
+}
+
+function setSide(frac) {
+  $("rSideFill").style.height = (frac * 100) + "%";
+  $("rSideTip").style.top = (frac * 100) + "%";
+  $("rSideTip").textContent = Math.round(frac * 100) + "%";
+}
+// click or drag on the rail to jump within the current episode
+function sideJump(e) {
+  const r = $("rSide").getBoundingClientRect();
+  const f = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+  if (R.mode === "scroll") {
+    const sec = currentSection();
+    if (sec) $("rscroll").scrollTop = sec.offsetTop + f * sec.offsetHeight - $("rscroll").clientHeight * 0.5;
+  } else if (R.pages && R.pages.length) {
+    R.page = Math.min(R.pages.length - 1, Math.floor(f * R.pages.length)); showPage();
+  }
+}
+$("rSide").addEventListener("pointerdown", e => {
+  $("rSide").classList.add("drag"); $("rSide").setPointerCapture(e.pointerId); sideJump(e);
+});
+$("rSide").addEventListener("pointermove", e => { if ($("rSide").classList.contains("drag")) sideJump(e); });
+$("rSide").addEventListener("pointerup", () => $("rSide").classList.remove("drag"));
+
+$("rscroll").addEventListener("scroll", () => {
+  if (!R.series || R.mode !== "scroll") return;
+  const sc = $("rscroll"), y = sc.scrollTop;
+  // the bar stays hidden while reading; it comes back only after scrolling up for a bit
+  // (~a third of the screen), or at the very top
+  const dy = y - R.lastY;
+  if (dy > 0) R.upRun = 0; else R.upRun = (R.upRun || 0) - dy;
+  if (y < 60 || R.upRun > sc.clientHeight * 0.33) $("rbar").classList.remove("away");
+  else if (dy > 2) $("rbar").classList.add("away");
+  R.lastY = y;
+  const sec = currentSection();
+  if (sec) {
+    const i = +sec.dataset.i;
+    if (i !== R.idx) { R.idx = i; syncBar(); markDone(i - 1); }
+    const frac = Math.min(1, Math.max(0, (y + sc.clientHeight * 0.5 - sec.offsetTop) / sec.offsetHeight));
+    $("rProg").style.width = (frac * 100) + "%";
+    setSide(frac);
+  }
+  // near the bottom → attach the next episode so reading never stops
+  if (sc.scrollHeight - (y + sc.clientHeight) < sc.clientHeight * 2) {
+    const last = Math.max(...R.loaded);
+    if (last < R.series.episodes.length - 1) appendEpisode(last + 1, true);
+    else markDone(last);
+  }
+  clearTimeout(R.saveT); R.saveT = setTimeout(saveProgress, 400);
+}, { passive: true });
+
+function saveProgress(now) {
+  if (!R.series) return;
+  const ep = R.series.episodes[R.idx];
+  let rec = { ep: ep.id };
+  if (R.mode === "scroll") {
+    const sec = currentSection();
+    if (sec) rec.frac = Math.min(1, Math.max(0, ($("rscroll").scrollTop + 44 - sec.offsetTop) / sec.offsetHeight));
+  } else rec.page = R.page;
+  store.set("read:" + R.series.name, rec);
+}
+
+function markDone(i) {
+  if (!R.series || i < 0) return;
+  const k = "done:" + R.series.name, d = store.get(k, []), id = R.series.episodes[i].id;
+  if (!d.includes(id)) { d.push(id); store.set(k, d); }
+}
+
+// ---------- paged ----------
+function showPage() {
+  const p = R.pages[R.page];
+  if (!p) return;
+  $("rpaged").classList.toggle("tall", p.h / p.w > 1.8);
+  $("rPage").src = p.src;
+  $("rpaged").scrollTop = 0;
+  $("rPnum").textContent = `${R.page + 1} / ${R.pages.length}`;
+  $("rProg").style.width = ((R.page + 1) / R.pages.length * 100) + "%";
+  setSide((R.page + 1) / R.pages.length);
+  [R.page + 1, R.page + 2].forEach(n => { if (R.pages[n]) new Image().src = R.pages[n].src; }); // preload
+  saveProgress();
+}
+function turn(d) {
+  const n = R.page + d;
+  if (n >= R.pages.length) { markDone(R.idx); return goEp(R.idx + 1); }
+  if (n < 0) return goEp(R.idx - 1, true);
+  R.page = n; showPage();
+}
+$("rZL").onclick = () => turn(R.rtl ? 1 : -1);
+$("rZR").onclick = () => turn(R.rtl ? -1 : 1);
+
+async function goEp(i, atEnd) {
+  if (i < 0 || i >= R.series.episodes.length) return;
+  R.idx = i;
+  if (R.mode === "paged") {
+    syncBar();
+    R.pages = await getPages(i);
+    R.page = atEnd ? R.pages.length - 1 : 0;
+    showPage();
+  } else start(null);
+}
+
+// ---------- bar controls ----------
+$("rClose").onclick = closeReader;
+$("rEp").onchange = () => goEp(+$("rEp").value);
+$("rPrev").onclick = () => goEp(R.idx - 1);
+$("rNext").onclick = () => goEp(R.idx + 1);
+$("rLang").onclick = () => {
+  R.lang = R.lang === "english" ? "original" : "english";
+  store.set("lang:" + R.series.name, R.lang);
+  saveProgress(); start(store.get("read:" + R.series.name, null));
+};
+function savePrefs() {
+  store.set("readerPrefs", { rtl: R.rtl, width: R.width });
+  if (R.series) store.set("mode:" + R.series.name, R.mode);
+}
+$("rMode").onclick = () => { R.mode = R.mode === "scroll" ? "paged" : "scroll"; savePrefs(); start(null); };
+$("rDir").onclick = () => { R.rtl = !R.rtl; savePrefs(); syncBar(); };
+$("rWidth").onclick = () => {
+  const steps = [600, 760, 960, 9999];
+  R.width = steps[(steps.indexOf(R.width) + 1) % steps.length] || 760;
+  const sec = currentSection(), sc = $("rscroll");
+  const frac = sec ? (sc.scrollTop - sec.offsetTop) / sec.offsetHeight : 0;
+  savePrefs(); syncBar();
+  if (sec) sc.scrollTop = sec.offsetTop + frac * sec.offsetHeight;   // keep your place
+};
+$("rpaged").addEventListener("mousemove", e => $("rbar").classList.toggle("away", e.clientY > 90));
+
+document.addEventListener("keydown", e => {
+  if ($("reader").classList.contains("hidden") || e.target.tagName === "SELECT") return;
+  const k = e.key;
+  if (k === "Escape") return closeReader();
+  if (k === "n" || k === "N") return goEp(R.idx + 1);
+  if (k === "p" || k === "P") return goEp(R.idx - 1);
+  if (k === "m" || k === "M") return $("rMode").click();
+  if (k === "w" || k === "W") return $("rWidth").click();
+  if (R.mode === "paged") {
+    if (k === "ArrowRight") { e.preventDefault(); turn(R.rtl ? -1 : 1); }
+    if (k === "ArrowLeft") { e.preventDefault(); turn(R.rtl ? 1 : -1); }
+    if (k === " " || k === "PageDown") { e.preventDefault(); turn(1); }
+    if (k === "PageUp") { e.preventDefault(); turn(-1); }
+  } else if (k === "ArrowDown" || k === "ArrowUp") {
+    e.preventDefault();
+    $("rscroll").scrollBy({ top: (k === "ArrowDown" ? 1 : -1) * $("rscroll").clientHeight * 0.8, behavior: "smooth" });
+  } else if (k === " ") {
+    e.preventDefault();
+    $("rscroll").scrollBy({ top: (e.shiftKey ? -1 : 1) * $("rscroll").clientHeight * 0.85, behavior: "smooth" });
+  }
+});
+window.addEventListener("beforeunload", () => saveProgress(true));
+
+route();
 </script>
 </body>
 </html>
