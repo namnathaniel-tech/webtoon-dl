@@ -113,6 +113,78 @@ DEEPL_LANGS = {"ko": "KO", "ja": "JA", "zh": "ZH", "zh-hant": "ZH", "zh-hk": "ZH
                "it": "IT", "th": "TH", "vi": "VI"}
 
 
+def _ctx():
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+def _write_key(path: str, key: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(key + "\n")
+
+
+def _mask(k: str) -> str:
+    return (k[:4] + "…" + k[-4:]) if len(k) > 10 else ("set" if k else "")
+
+
+def deepl_usage() -> dict | None:
+    """Characters used / allowed this month on the saved DeepL key, or None."""
+    import urllib.request
+    key = deepl_key()
+    if not key:
+        return None
+    host = "api-free.deepl.com" if key.endswith(":fx") else "api.deepl.com"
+    req = urllib.request.Request(f"https://{host}/v2/usage", headers={
+        "Authorization": "DeepL-Auth-Key " + key, "User-Agent": "webtoon-dl/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10, context=_ctx()) as r:
+            d = json.load(r)
+        return {"used": d.get("character_count", 0), "limit": d.get("character_limit", 0)}
+    except Exception:
+        return None
+
+
+def key_status() -> dict:
+    """What the settings page shows. Full keys are never sent back to the page."""
+    dk, gk = deepl_key(), groq_key()
+    from_env = lambda name: bool(os.environ.get(name, "").strip())
+    return {
+        "active": provider(),
+        "deepl": {"set": bool(dk), "masked": _mask(dk), "fromEnv": from_env("DEEPL_API_KEY"),
+                  "free": dk.endswith(":fx"), "usage": deepl_usage()},
+        "groq": {"set": bool(gk), "masked": _mask(gk), "fromEnv": from_env("GROQ_API_KEY"), "model": GROQ_MODEL},
+        "anthropic": {"set": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))},
+    }
+
+
+def save_groq_key(key: str) -> None:
+    """Check the key with Groq, then store it privately. '' removes it."""
+    import urllib.error
+    import urllib.request
+    key = key.strip()
+    if not key:
+        try:
+            os.remove(GROQ_KEY_FILE)
+        except OSError:
+            pass
+        return
+    req = urllib.request.Request("https://api.groq.com/openai/v1/models", headers={
+        "Authorization": "Bearer " + key, "User-Agent": "webtoon-dl/1.0"})
+    try:
+        urllib.request.urlopen(req, timeout=20, context=_ctx()).read()
+    except urllib.error.HTTPError as e:
+        raise TranslateError("Groq didn't accept that key." if e.code in (401, 403) else f"Groq error {e.code}; try again.")
+    except urllib.error.URLError:
+        raise TranslateError("Couldn't reach Groq to check the key (network).")
+    _write_key(GROQ_KEY_FILE, key)
+
+
 def save_deepl_key(key: str) -> None:
     """Check the key with DeepL, then store it privately (0600) outside the repo. '' removes it."""
     import urllib.error

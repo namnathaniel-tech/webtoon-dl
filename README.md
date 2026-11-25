@@ -44,15 +44,31 @@ Downloads go to `~/Downloads/Webtoons/<series>/` and show up under **Your librar
 
 ## Translate to English
 
-1. Get a free DeepL API key: sign up for **DeepL API Free** at [deepl.com/pro-api](https://www.deepl.com/pro-api) (500,000 characters a month, no charge).
-2. In the app, open a series, click **Translation key** next to the Download button, paste the key and click **Save key**. It's checked with DeepL and saved only on your Mac.
-3. Tick **Translate to English** before downloading.
+Translation needs a free DeepL key. You set it up once, in the app's **Settings** page.
 
-How it works: macOS text recognition finds the text in each speech balloon, DeepL translates it, and the app erases the Korean and letters the English in the same balloon. Sound effects, titles and anything drawn over artwork are left as drawn. A script (original → English) is saved next to the episode.
+### Get a free DeepL key (about 2 minutes)
+
+1. Open [deepl.com/pro-api](https://www.deepl.com/pro-api), pick **DeepL API Free**, then **Sign up for free**.
+2. Create the account with your email. DeepL asks for a card to confirm you're a real person; the Free plan (500,000 characters a month) doesn't charge it.
+3. Go to **Account → API Keys** ([deepl.com/your-account/keys](https://www.deepl.com/your-account/keys)) and copy your key. A Free key ends in `:fx`.
+
+### Add it to the app
+
+1. Start the app and click **⚙ Settings** at the top right of the home page.
+2. Paste the key into the **DeepL** box and click **Save**. The app checks it with DeepL and shows **Saved** and how many characters you've used this month.
+3. Open a series, tick **Translate to English**, and click **Download**.
+
+The key is saved only on your Mac (`~/Library/Application Support/webtoon-dl/`, readable only by your account). To change or remove it, go back to Settings.
+
+### How it works
+
+macOS text recognition finds the text in each speech balloon, DeepL translates it, and the app erases the Korean and letters the English in the same balloon. Sound effects, titles and anything drawn over artwork are left as drawn. A script (original → English) is saved next to the episode.
 
 It's machine translation and machine lettering, so expect plain wording and the odd misplaced line, especially on pages full of small on-screen text.
 
-Advanced: instead of DeepL you can use Groq (`GROQ_API_KEY`) or Claude (`ANTHROPIC_API_KEY`) by setting the key in the terminal before `./run.sh`. These follow the rules in `translation_guide.md`.
+### Other services (optional)
+
+Settings also takes a **Groq** key ([console.groq.com/keys](https://console.groq.com/keys)), used only when there's no DeepL key. It uses an AI model that follows the rules in `translation_guide.md`, but on Groq's free plan it's slow (about a page a minute). Advanced users can set `ANTHROPIC_API_KEY` in the terminal to use Claude instead. The app uses DeepL first, then Groq, then Claude.
 
 ## Signing in (optional)
 

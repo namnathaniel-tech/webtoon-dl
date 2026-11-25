@@ -80,6 +80,31 @@
   .tr-opt.off { opacity: .5; cursor: default; }
   .tr-note { flex-basis: 100%; color: var(--muted); font-size: 12.5px; }
   .key-link { font-size: 12.5px; }
+  .home-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .gear { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .gear:hover { color: var(--text); }
+  #settingsView { max-width: 640px; }
+  #settingsView .crumb h1 { margin: 0; }
+  .set-h { font-size: 15px; margin: 24px 0 6px; }
+  .set-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 10px 0; }
+  .set-title { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .set-row { margin-top: 10px; }
+  .set-row input { flex: 1; min-width: 200px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line);
+                   border-radius: 6px; padding: 8px 10px; outline: none; }
+  .set-msg { font-size: 13px; margin-top: 6px; min-height: 1em; color: var(--muted); }
+  .set-msg.bad { color: var(--danger); }
+  .pill { font-size: 11.5px; border-radius: 10px; padding: 1px 8px; border: 1px solid var(--line); color: var(--muted); }
+  .pill.on { color: var(--accent); border-color: var(--accent); }
+  .usage { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+  .usage .bar { flex: 1; margin: 0; }
+  .usage .bar > div { height: 100%; background: var(--accent); }
+  .small { font-size: 12.5px; }
+  .howto { margin-top: 10px; font-size: 13px; }
+  .howto summary { cursor: pointer; color: var(--accent); }
+  .howto ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.6; }
+  .acct-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .acct-row + .acct-row { border-top: 1px solid var(--line); }
+  .acct-row span:first-child { flex: 1; }
   .key-box { flex-basis: 100%; font-size: 13px; background: var(--hover); border-radius: 8px; padding: 10px 12px; }
   .bar { height: 6px; background: var(--hover); border-radius: 3px; overflow: hidden; margin: 8px 0; }
   .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
@@ -162,7 +187,7 @@
 <main>
   <!-- HOME -->
   <section id="home">
-    <h1>Webtoon Downloader</h1>
+    <div class="home-top"><h1>Webtoon Downloader</h1><a class="gear" href="#settings" title="Settings">⚙ Settings</a></div>
     <p class="sub">Pick a site, paste a link, download. Free episodes work right away; sign in to Naver or WEBTOON (inside the site) to also get episodes your account has unlocked.</p>
     <div class="sites" id="sites"></div>
     <div id="libSection" class="hidden">
@@ -252,6 +277,60 @@
     <div class="panel ep-list"><div class="eps" id="libEps" style="max-height:none"></div></div>
   </section>
 
+  <!-- SETTINGS -->
+  <section id="settingsView" class="hidden">
+    <div class="crumb"><button id="setBack" type="button">← Home</button><h1>Settings</h1></div>
+
+    <h2 class="set-h">Translation</h2>
+    <p class="muted" id="setActive">Loading…</p>
+
+    <div class="set-card">
+      <div class="set-title"><b>DeepL</b> <span class="pill" id="dlPill"></span></div>
+      <div class="muted">Recommended. Free plan: 500,000 characters a month. Get a key at
+        <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener">deepl.com/pro-api</a> (choose “DeepL API Free”).</div>
+      <details class="howto" id="dlHow">
+        <summary>How to get a free DeepL key (2 minutes)</summary>
+        <ol>
+          <li>Open <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener">deepl.com/pro-api</a> and pick <b>DeepL API Free</b>, then <b>Sign up for free</b>.</li>
+          <li>Create the account with your email. DeepL asks for a card to confirm you're a real person; the Free plan doesn't charge it.</li>
+          <li>When you're in, open <b>Account → API Keys</b> (<a href="https://www.deepl.com/your-account/keys" target="_blank" rel="noopener">deepl.com/your-account/keys</a>).</li>
+          <li>Copy your key. A Free key ends in <code>:fx</code>.</li>
+          <li>Paste it in the box below and click <b>Save</b>. When it says <b>Saved</b>, tick <b>Translate to English</b> before downloading.</li>
+        </ol>
+      </details>
+      <div class="usage hidden" id="dlUsage"><div class="bar"><div id="dlBar"></div></div><span id="dlUsageText"></span></div>
+      <div class="row set-row">
+        <input type="password" id="dlKey" placeholder="Paste DeepL key (…:fx)" autocomplete="off" spellcheck="false">
+        <button class="primary" type="button" data-save="deepl">Save</button>
+        <button type="button" data-remove="deepl" class="hidden">Remove</button>
+      </div>
+      <div class="set-msg" id="dlMsg"></div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title"><b>Groq</b> <span class="pill" id="grPill"></span></div>
+      <div class="muted">Optional. Used only when there's no DeepL key. An AI model reads the pages and follows the translation guide; the free plan is slow (about a page a minute). Get a key at
+        <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.</div>
+      <div class="row set-row">
+        <input type="password" id="grKey" placeholder="Paste Groq key (gsk_…)" autocomplete="off" spellcheck="false">
+        <button class="primary" type="button" data-save="groq">Save</button>
+        <button type="button" data-remove="groq" class="hidden">Remove</button>
+      </div>
+      <div class="set-msg" id="grMsg"></div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title"><b>Claude</b> <span class="pill" id="clPill"></span></div>
+      <div class="muted">Optional, for advanced users. Used only when there's no DeepL or Groq key. Set <code>ANTHROPIC_API_KEY</code> in the terminal before starting the app.</div>
+    </div>
+
+    <p class="muted small">Keys are checked with the service when you save them and kept only on this Mac
+      (<code>~/Library/Application Support/webtoon-dl/</code>, readable only by your account). They're never shown in full again or uploaded anywhere else.</p>
+
+    <h2 class="set-h">Accounts</h2>
+    <div class="set-card" id="setAccounts"></div>
+  </section>
+
   <!-- READER -->
   <div id="reader" class="hidden">
     <div class="rbar" id="rbar">
@@ -339,8 +418,62 @@ function applyTranslateState(c) {
   $("keyRemove").classList.toggle("hidden", c.provider !== "deepl");
   if (!c.translate) $("translate").checked = false;
 }
-$("keyLink").onclick = () => $("keyBox").classList.toggle("hidden");
-$("trOpt").onclick = () => { if ($("translate").disabled) $("keyBox").classList.remove("hidden"); };
+$("keyLink").onclick = () => { location.hash = "settings"; };
+$("trOpt").onclick = () => { if ($("translate").disabled) location.hash = "settings"; };
+
+// ---- Settings page
+const SERVICE_NAMES = { deepl: "DeepL", groq: "Groq", anthropic: "Claude", "": "none (add a key to translate)" };
+function renderKeys(k) {
+  $("setActive").textContent = "Translate to English uses: " + SERVICE_NAMES[k.active || ""] +
+    (k.active && k.active !== "deepl" && !k.deepl.set ? "  (add a DeepL key for faster, better results)" : "");
+  const pill = (el, on, text) => { el.textContent = text; el.classList.toggle("on", on); };
+  if (!k.deepl.set) $("dlHow").open = true;
+  pill($("dlPill"), k.deepl.set, k.deepl.set ? `Saved ${k.deepl.masked}` + (k.active === "deepl" ? " · in use" : "") : "Not set");
+  pill($("grPill"), k.groq.set, k.groq.set ? `Saved ${k.groq.masked}` + (k.active === "groq" ? " · in use" : " · standby") : "Not set");
+  pill($("clPill"), k.anthropic.set, k.anthropic.set ? (k.active === "anthropic" ? "Set · in use" : "Set · standby") : "Not set");
+  for (const s of ["deepl", "groq"]) {
+    const rm = document.querySelector(`[data-remove="${s}"]`);
+    rm.classList.toggle("hidden", !k[s].set || k[s].fromEnv);
+    rm.title = k[s].fromEnv ? "Set by an environment variable" : "";
+  }
+  const u = k.deepl.usage;
+  $("dlUsage").classList.toggle("hidden", !u);
+  if (u) {
+    $("dlBar").style.width = Math.min(100, 100 * u.used / (u.limit || 1)) + "%";
+    $("dlUsageText").textContent = `${u.used.toLocaleString()} / ${u.limit.toLocaleString()} characters this month`;
+  }
+  applyTranslateState({ translate: !!k.active, provider: k.active });
+}
+async function loadSettings() {
+  try { renderKeys(await api("/api/keys")); } catch (e) { $("setActive").textContent = e.message; }
+  try {
+    const st = await api("/api/accounts"), box = $("setAccounts"); box.innerHTML = "";
+    for (const [id, a] of Object.entries(st)) {
+      const row = document.createElement("div"); row.className = "acct-row";
+      const name = document.createElement("span"); name.textContent = a.label;
+      const state = document.createElement("span"); state.className = "muted"; state.textContent = a.signedIn ? "Signed in" : "Not signed in";
+      const b = document.createElement("button"); b.type = "button";
+      if (a.signedIn) { b.textContent = "Sign out"; b.onclick = async () => { await api("/api/accounts/signout", { site: id }); loadSettings(); }; }
+      else { b.textContent = "Sign in"; b.onclick = () => { location.hash = id; }; b.title = "Opens the site page, then use Sign in at the top right"; }
+      row.append(name, state, b); box.appendChild(row);
+    }
+  } catch {}
+}
+document.querySelectorAll("[data-save]").forEach(btn => btn.onclick = async () => {
+  const s = btn.dataset.save, input = $(s === "deepl" ? "dlKey" : "grKey"), msg = $(s === "deepl" ? "dlMsg" : "grMsg");
+  if (!input.value.trim()) { msg.textContent = "Paste a key first."; msg.classList.add("bad"); return; }
+  msg.classList.remove("bad"); msg.textContent = "Checking the key…"; btn.disabled = true;
+  try { renderKeys(await api("/api/keys", { service: s, key: input.value })); input.value = ""; msg.textContent = "Saved."; }
+  catch (e) { msg.textContent = e.message; msg.classList.add("bad"); }
+  finally { btn.disabled = false; }
+});
+document.querySelectorAll("[data-remove]").forEach(btn => btn.onclick = async () => {
+  const s = btn.dataset.remove, msg = $(s === "deepl" ? "dlMsg" : "grMsg");
+  if (!confirm(`Remove the ${SERVICE_NAMES[s]} key from this Mac?`)) return;
+  try { renderKeys(await api("/api/keys", { service: s, key: "" })); msg.classList.remove("bad"); msg.textContent = "Removed."; }
+  catch (e) { msg.textContent = e.message; msg.classList.add("bad"); }
+});
+$("setBack").onclick = () => { location.hash = ""; };
 $("keySave").onclick = async () => {
   $("keyMsg").textContent = "Checking the key with DeepL…"; $("keySave").disabled = true;
   try {
@@ -439,6 +572,14 @@ function pollAccount() {
 function reloadIfLoaded() { if (series) $("loadForm").requestSubmit(); }
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
+  const inSet = h === "settings";
+  $("settingsView").classList.toggle("hidden", !inSet);
+  if (inSet) {
+    $("libView").classList.add("hidden"); $("home").classList.add("hidden"); $("siteView").classList.add("hidden");
+    if (R.series) closeReaderQuiet();
+    site = null; document.title = "Settings · Webtoon Downloader";
+    return loadSettings();
+  }
   const inLib = h.startsWith("library/"), inRead = h.startsWith("read/");
   $("libView").classList.toggle("hidden", !inLib);
   if (!inRead && R.series) closeReaderQuiet();

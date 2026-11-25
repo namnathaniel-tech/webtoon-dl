@@ -139,6 +139,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "no icon"})
         if self.path.startswith(("/api/library", "/lib?", "/libcover?")):
             return self._library()
+        if self.path == "/api/keys":
+            try:
+                import translate
+                return self._send(200, translate.key_status())
+            except ImportError as e:
+                return self._send(500, {"error": str(e)})
         if self.path == "/api/accounts":
             return self._send(200, accounts.status())
         if self.path == "/api/config":
@@ -171,6 +177,22 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
         except Exception:
             return self._send(400, {"error": "bad json"})
+        if self.path == "/api/keys":
+            origin = self.headers.get("Origin", "")
+            if origin and origin not in (f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"):
+                return self._send(403, {"error": "forbidden"})
+            try:
+                import translate
+                svc, key = body.get("service"), str(body.get("key", ""))
+                if svc == "deepl":
+                    translate.save_deepl_key(key)
+                elif svc == "groq":
+                    translate.save_groq_key(key)
+                else:
+                    return self._send(400, {"error": "unknown service"})
+                return self._send(200, translate.key_status())
+            except Exception as e:
+                return self._send(400, {"error": str(e)})
         if self.path == "/api/deepl-key":
             origin = self.headers.get("Origin", "")
             if origin and origin not in (f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"):
