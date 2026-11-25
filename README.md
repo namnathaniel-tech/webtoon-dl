@@ -11,7 +11,7 @@ You need **Python 3.10 or newer**. If you're not sure, install the latest from [
 **Option A: with Terminal**
 
 ```sh
-git clone https://github.com/namnathaniel-tech/webtoon-dl.git
+git clone https://github.com/xaslin/webtoon-dl.git
 cd webtoon-dl
 ./run.sh
 ```
