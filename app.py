@@ -254,8 +254,10 @@ class Handler(BaseHTTPRequestHandler):
                 job["cancel"] = True
             return self._send(200, {"ok": True})
         if self.path == "/api/reveal":
-            path = body.get("path", "")
-            known = any(path == j["outDir"] or path.startswith(j["outDir"] + os.sep) for j in _jobs.values())
+            path = os.path.realpath(os.path.expanduser(body.get("path", "")))
+            # anything inside the default save folder or a folder this app downloaded into
+            roots = {os.path.realpath(wd.DEFAULT_OUT)} | {os.path.realpath(os.path.dirname(j["outDir"])) for j in _jobs.values()}
+            known = any(path == r or path.startswith(r + os.sep) for r in roots)
             if known and os.path.exists(path) and sys.platform == "darwin":
                 subprocess.run(["open", "-R", path] if os.path.isfile(path) else ["open", path])
                 return self._send(200, {"ok": True})

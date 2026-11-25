@@ -686,6 +686,54 @@ def _deepl(texts: list[str], source_lang: str, context: str) -> list[str]:
     return out
 
 
+def _is_outlined(arr: np.ndarray, box, glines=None) -> bool:
+    """Subtitle-style text: light letters with a dark outline, drawn straight on the art.
+    Tell-tale sign: every line has light letters on a background that isn't white."""
+    if glines:
+        # every line sits on artwork (not plain paper) and has light letters
+        for _, b, bg in glines:
+            if _line_bg(arr, b)[1] >= 0.75:   # plain paper or a plain caption box
+                return False
+            x0, y0, x1, y1 = [max(0, int(v)) for v in b]
+            lum = arr[y0:y1, x0:x1].astype(np.int16).mean(axis=2)
+            if lum.size == 0 or (lum > 225).mean() < 0.12:
+                return False
+        return True
+    x0, y0, x1, y1 = [max(0, int(v)) for v in box]
+    patch = arr[y0:y1, x0:x1].astype(np.int16)
+    if patch.size == 0:
+        return False
+    lum = patch.mean(axis=2)
+    light, dark = lum > 225, lum < 60
+    if light.mean() < 0.06 or dark.mean() < 0.06:
+        return False
+    # light pixels that touch dark ones = letter fill against its outline
+    near = np.zeros_like(light)
+    near[1:, :] |= dark[:-1, :]; near[:-1, :] |= dark[1:, :]; near[:, 1:] |= dark[:, :-1]; near[:, :-1] |= dark[:, 1:]
+    return (light & near).sum() > 0.25 * light.sum()
+
+
+def _stammer(fragment: str, candidates: list[tuple[str, str]]) -> str | None:
+    """'사.' next to '사랑…' (Love…) is the start of that word, cut off: 'L—'.
+    DeepL on its own would read 사 as the number four."""
+    f = _norm(fragment)
+    if len(f) != 1:                     # a single cut-off syllable
+        return None
+    best = None
+    for orig, en in candidates:
+        o = _norm(orig)
+        if o != f and o.startswith(f) and re.search(r"[A-Za-z]", en):
+            if best is None or len(o) < len(_norm(best[0])):
+                best = (orig, en)
+    if not best:
+        return None
+    word = re.sub(r"^[^A-Za-z]+", "", best[1])
+    words = re.findall(r"[A-Za-z']+", word)
+    # stutter the main word: skip a leading pronoun ("I love you" -> "L—")
+    w = words[1] if len(words) > 1 and words[0] in ("I", "You", "We", "He", "She", "It", "They") else (words[0] if words else "")
+    return (w[:1].upper() + "—") if w else None
+
+
 def _ask_deepl(tiles: list[Image.Image], first_no: int, series: str, recent: list[str],
                source_lang: str) -> dict:
     joiner = "" if source_lang in ("ja", "zh", "zh-hant", "zh-hk") else " "
@@ -699,13 +747,27 @@ def _ask_deepl(tiles: list[Image.Image], first_no: int, series: str, recent: lis
             if not re.search(r"[^\W\d_]", original):   # numbers/punctuation only
                 continue
             lh = (box[3] - box[1]) / max(1, len(texts))
-            found.append((first_no + i, original, box, lh, _bg_segments(glines)))
+            arr = np.asarray(t.convert("RGB"))
+            outlined = _is_outlined(arr, box, glines)
+            # outlined captions stay one piece (their lines just sit on different art)
+            segs = [glines] if outlined else _bg_segments(glines)
+            found.append((first_no + i, original, box, lh, segs, outlined))
     if not found:
         return {"tiles": [], "glossary_additions": []}
     context = f"Dialogue from the comic \"{series}\". " + " ".join(r.split(" => ")[-1] for r in recent[-8:])
     english = _deepl([f[1] for f in found], source_lang, context)
+    # stammers: a cut-off syllable that starts a nearby line ("사." before "사랑해…")
+    pairs = [(f[1], e) for f, e in zip(found, english)]
+    prev = [tuple(r.split(" => ", 1)) for r in recent[-6:] if " => " in r]
+    for k, (f, en) in enumerate(zip(found, english)):
+        near = prev + pairs[max(0, k - 3):k] + pairs[k + 1:k + 4]
+        st = _stammer(f[1], near)
+        if st:
+            english[k] = st
+        elif re.fullmatch(r"[\d\s.,!?…~-]+", en.strip()) and not re.search(r"\d", f[1]):
+            english[k] = f[1]   # a lone syllable read as a number, with nothing to explain it: leave it
     by_tile: dict[int, list] = {}
-    for (no, original, box, lh, segs), en in zip(found, english):
+    for (no, original, box, lh, segs, outlined), en in zip(found, english):
         # one sentence over two backgrounds (white page + black bar): translate it whole,
         # then letter each part where its original part was
         pieces = _split_english(en, [len(_norm("".join(t for t, _, _ in sg))) for sg in segs]) \
@@ -722,7 +784,8 @@ def _ask_deepl(tiles: list[Image.Image], first_no: int, series: str, recent: lis
             g = round((sb[3] - sb[1]) / max(1, len(sg)))
             pad = round(0.15 * g)
             by_tile.setdefault(no, []).append({
-                "kind": "speech", "original": original if len(segs) == 1 else joiner.join(t for t, _, _ in sg),
+                "kind": "subtitle" if outlined else "speech",
+                "original": original if len(segs) == 1 else joiner.join(t for t, _, _ in sg),
                 "english": piece, "text_box": [sb[0] - pad, sb[1] - pad, sb[2] + pad, sb[3] + pad],
                 "area_box": [sb[0] - g, sb[1] - g, sb[2] + g, sb[3] + g], "glyph": g})
     return {"tiles": [{"tile": n, "regions": r} for n, r in sorted(by_tile.items())], "glossary_additions": []}
@@ -833,7 +896,7 @@ def _max_fit(words, w, h, oval, hi, lo):
     return lo
 
 
-def _draw_lines(draw, lines, size, box, fill):
+def _draw_lines(draw, lines, size, box, fill, stroke=0, stroke_fill=None):
     x0, y0, x1, y1 = box
     sp = _font(size, False).getlength(" ")
     line_h = size * 1.12
@@ -843,7 +906,7 @@ def _draw_lines(draw, lines, size, box, fill):
         x = (x0 + x1) / 2 - lw / 2
         for wd in line:
             for t, e in wd:
-                draw.text((x, y), t, font=_font(size, e), fill=fill)
+                draw.text((x, y), t, font=_font(size, e), fill=fill, stroke_width=stroke, stroke_fill=stroke_fill)
                 x += _font(size, e).getlength(t)
             x += sp
         y += line_h
@@ -1022,6 +1085,63 @@ def _flat_extent(arr: np.ndarray, box, bg, keep) -> list[int]:
     return [x0, y0, x1, y1]
 
 
+def _inpaint_text(arr: np.ndarray, tb) -> None:
+    """Remove outlined lettering from artwork: replace its light/dark pixels by interpolating
+    each column between the art just above and below the text."""
+    x0, y0, x1, y1 = [int(v) for v in tb]
+    H, W = arr.shape[:2]
+    x0, y0, x1, y1 = max(0, x0 - 3), max(1, y0 - 3), min(W, x1 + 3), min(H - 1, y1 + 3)
+    patch = arr[y0:y1, x0:x1].astype(np.float32)
+    lum = patch.mean(axis=2)
+    mask = (lum > 215) | (lum < 70)
+    # grow the mask a little so anti-aliased edges go too
+    m = mask.copy()
+    m[1:] |= mask[:-1]; m[:-1] |= mask[1:]; m[:, 1:] |= mask[:, :-1]; m[:, :-1] |= mask[:, 1:]
+    top = arr[y0 - 1, x0:x1].astype(np.float32)
+    bot = arr[y1, x0:x1].astype(np.float32)
+    h = y1 - y0
+    ramp = (np.arange(h, dtype=np.float32) + 1) / (h + 1)
+    fill = top[None, :, :] * (1 - ramp[:, None, None]) + bot[None, :, :] * ramp[:, None, None]
+    patch[m] = fill[m]
+    arr[y0:y1, x0:x1] = patch.clip(0, 255).astype(np.uint8)
+
+
+def _enclosed_balloon(arr: np.ndarray, tb, glyph: int):
+    """Fallback balloon finder: plain background around the text with an outline in every
+    direction (works when a balloon's tail touches a panel border)."""
+    H, W = arr.shape[:2]
+    cx, cy = int((tb[0] + tb[2]) / 2), int((tb[1] + tb[3]) / 2)
+    ring = _ring(arr, _clamp([tb[0] - 4, tb[1] - 4, tb[2] + 4, tb[3] + 4], W, H), 6)
+    if not ring.size:
+        return None
+    bg, share = _dominant(ring)
+    if share < 0.93:
+        return None
+    col = np.asarray(bg, dtype=np.int16)
+    reach = int(glyph * 7)
+    hits = {}
+    for name, (dx, dy), start in (("l", (-1, 0), tb[0] - 2), ("r", (1, 0), tb[2] + 2),
+                                  ("u", (0, -1), tb[1] - 2), ("d", (0, 1), tb[3] + 2)):
+        x, y = (int(start), cy) if dx else (cx, int(start))
+        for _ in range(reach):
+            x += dx; y += dy
+            if not (0 <= x < W and 0 <= y < H):
+                return None
+            if np.abs(arr[y, x].astype(np.int16) - col).sum() > 150:   # hit the outline
+                hits[name] = x if dx else y
+                break
+        else:
+            return None
+    box = [hits["l"], hits["u"], hits["r"], hits["d"]]
+    erase = np.zeros(arr.shape[:2], dtype=bool)
+    x0, y0, x1, y1 = [int(v) for v in _clamp([tb[0] - 3, tb[1] - 3, tb[2] + 3, tb[3] + 3], W, H)]
+    erase[y0:y1, x0:x1] = True
+    # inner box: the outline found in 4 directions, inset so text stays off the curve
+    iw, ih = box[2] - box[0], box[3] - box[1]
+    inner = [round(box[0] + iw * 0.12), round(box[1] + ih * 0.15), round(box[2] - iw * 0.12), round(box[3] - ih * 0.15)]
+    return tuple(int(c) for c in bg), erase, inner
+
+
 def plan_tile(tile: Image.Image, regions: list[dict]):
     """Erase source text; return the cleaned tile and where each English line goes."""
     im = tile.convert("RGB").copy()
@@ -1040,8 +1160,22 @@ def plan_tile(tile: Image.Image, regions: list[dict]):
         if r["kind"] == "sfx":
             plans.append({"kind": "sfx", "words": words, "anchor": tb})
             continue
+        if r["kind"] == "subtitle":
+            # white letters with a dark outline on the art: paint over the old letters with the
+            # colours around them, then letter the English in the same outlined style (no box)
+            _inpaint_text(arr, tb)
+            g = glyph or (tb[3] - tb[1])
+            cx = (tb[0] + tb[2]) / 2
+            half = max((tb[2] - tb[0]) / 2, min(cx, W - cx) * 0.9)
+            plans.append({"kind": "subtitle", "words": words, "glyph": g, "tb": tb,
+                          "box": _clamp([cx - half, tb[1] - g * 0.4, cx + half, tb[3] + g * 0.4], W, H)})
+            continue
         oval = r["kind"] in ("speech", "thought")
         found = _find_balloon(arr, tb, ab)
+        if not found and glyph:
+            found = _enclosed_balloon(arr, tb, glyph)
+        if r.get("_big") and not found:
+            continue   # big text outside a balloon = a title or logo: leave the art as drawn
         if found:
             bg, erase, box = found
             arr[erase] = bg
@@ -1052,7 +1186,7 @@ def plan_tile(tile: Image.Image, regions: list[dict]):
                 hh = max((tb[3] - tb[1]) / 2, min(cy - box[1], box[3] - cy))
                 box = [round(cx - hw), round(cy - hh), round(cx + hw), round(cy + hh)]
             ink = (0, 0, 0) if sum(bg) > 382 else (255, 255, 255)
-            plans.append({"kind": r["kind"], "words": words, "box": box, "ink": ink, "oval": oval, "inset": True,
+            plans.append({"kind": r["kind"], "words": words, "box": box, "ink": ink, "oval": oval, "inset": True, "tb": tb,
                           "glyph": glyph})
             continue
         eb = _clamp([tb[0] - 4, tb[1] - 4, tb[2] + 4, tb[3] + 4], W, H)
@@ -1097,13 +1231,31 @@ def plan_tile(tile: Image.Image, regions: list[dict]):
                         elif ob[3] <= tb[1]:
                             box[1] = max(box[1], round((ob[3] + tb[1]) / 2))
             ink = (0, 0, 0) if sum(bg) > 382 else (255, 255, 255)
-            plans.append({"kind": r["kind"], "words": words, "box": box, "ink": ink, "oval": oval, "inset": True,
+            plans.append({"kind": r["kind"], "words": words, "box": box, "ink": ink, "oval": oval, "inset": True, "tb": tb,
                           "glyph": glyph, "open": bool(glyph)})
         else:
             # text on busy art: cover with a clean caption box
             plans.append({"kind": r["kind"], "words": words, "box": eb, "ink": (0, 0, 0),
                           "oval": False, "inset": False, "caption": True})
+    _separate(plans)
     return Image.fromarray(arr), plans
+
+
+def _separate(plans: list[dict]) -> None:
+    """If two letterings' boxes overlap, split the space between them at the midpoint."""
+    boxed = [p for p in plans if p.get("box")]
+    for i, a in enumerate(boxed):
+        for b in boxed[i + 1:]:
+            A, B = a["box"], b["box"]
+            if A[0] >= B[2] or B[0] >= A[2] or A[1] >= B[3] or B[1] >= A[3]:
+                continue
+            top, bot = (a, b) if (A[1] + A[3]) <= (B[1] + B[3]) else (b, a)
+            mid = round((top["box"][3] + bot["box"][1]) / 2)
+            ta, tb_ = top.get("tb"), bot.get("tb")
+            if ta and tb_ and ta[3] <= tb_[1]:
+                mid = round((ta[3] + tb_[1]) / 2)
+            top["box"] = [top["box"][0], top["box"][1], top["box"][2], max(top["box"][1] + 8, mid)]
+            bot["box"] = [bot["box"][0], min(bot["box"][3] - 8, mid), bot["box"][2], bot["box"][3]]
 
 
 def _inner(p):
@@ -1129,6 +1281,14 @@ def render_tile(im: Image.Image, plans, base_size: int) -> Image.Image:
             bx = [max(2, cx - tw / 2 - 6), ty - 3, min(W - 2, cx + tw / 2 + 6), ty + size * 1.15 + 3]
             draw.rounded_rectangle(bx, radius=6, fill=(255, 255, 255), outline=(0, 0, 0), width=2)
             draw.text(((bx[0] + bx[2]) / 2 - tw / 2, ty), text, font=f, fill=(0, 0, 0))
+            continue
+        if p["kind"] == "subtitle":
+            b = p["box"]
+            bw, bh = b[2] - b[0], b[3] - b[1]
+            hi = max(lo, int(p["glyph"] * 0.9))
+            size = _max_fit(words, bw, bh, False, hi, lo)
+            lines = _wrap(words, size, bw, bh, False) or [[w] for w in words]
+            _draw_lines(draw, lines, size, b, (255, 255, 255), stroke=max(2, size // 9), stroke_fill=(0, 0, 0))
             continue
         inner = _inner(p)
         iw, ih = inner[2] - inner[0], inner[3] - inner[1]
@@ -1245,7 +1405,7 @@ def translate_episode(images: list[bytes], series_title: str, series_dir: str, e
             for rs in per_tile:
                 for r in rs:
                     if r.get("glyph") and r["glyph"] > med * 1.8:
-                        r["_noplace"] = True
+                        r["_big"] = True     # title/logo, unless it turns out to be in a balloon
     planned = [plan_tile(t, r) for t, r in zip(tiles, per_tile)]
     base = _episode_base_size(tiles, [p for _, p in planned])
     out, script = [], [f"# {series_title} — {episode_label}\n"]
