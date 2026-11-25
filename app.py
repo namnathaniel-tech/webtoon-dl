@@ -158,7 +158,9 @@ class Handler(BaseHTTPRequestHandler):
             if not (host.endswith(".pstatic.net") or host == "uploads.mangadex.org"):
                 return self._send(400, {"error": "bad thumb"})
             try:
-                ref = "https://www.webtoons.com/" if "webtoon-phinf" in u else "https://comic.naver.com/"
+                ref = ("https://www.webtoons.com/" if "webtoon-phinf" in u
+                       else "https://m.blog.naver.com/" if "blogthumb" in u or "blogfiles" in u
+                       else "https://comic.naver.com/")
                 return self._send(200, wd.fetch(u, ref), "image/jpeg")
             except Exception:
                 return self._send(404, {"error": "thumb failed"})

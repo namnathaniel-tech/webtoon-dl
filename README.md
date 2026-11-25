@@ -1,6 +1,6 @@
 # Webtoon Downloader
 
-Download free episodes from **Naver Webtoon** (comic.naver.com, Korean), **WEBTOON** (webtoons.com, English and other languages) and **MangaDex** (manga in many languages), read them in a built-in reader, and optionally translate Korean episodes into English.
+Download free episodes from **Naver Webtoon** (comic.naver.com, Korean), one-shot comics from **Naver Blog** (blog.naver.com), **WEBTOON** (webtoons.com, English and other languages) and **MangaDex** (manga in many languages), read them in a built-in reader, and optionally translate Korean episodes into English.
 
 Runs on your own Mac in your browser. Nothing is uploaded anywhere.
 
@@ -30,7 +30,7 @@ Next time, run `./run.sh` from the `webtoon-dl` folder or double-click **Webtoon
 
 1. Pick a site on the home page.
 2. Paste a series or episode link from that site and click **Load**.
-3. Tick the episodes you want, choose **Images**, **CBZ** or **PDF**, and click **Download**.
+3. Tick the episodes you want (Naver Blog posts are single comics, so there's nothing to pick), choose **Images**, **CBZ** or **PDF**, and click **Download**.
 
 Downloads go to `~/Downloads/Webtoons/<series>/` and show up under **Your library** on the home page, with the series' cover art and AniList info (other titles, genres, status, description).
 

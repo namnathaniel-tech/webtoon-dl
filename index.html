@@ -196,7 +196,7 @@
           <div class="muted" id="meta"></div>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="toolbar" id="epToolbar">
         <button id="selAll" type="button">All</button>
         <button id="selNone" type="button">None</button>
         <span class="muted">Range</span>
@@ -305,6 +305,12 @@ const SITES = [
     blurb: "Global WEBTOON in English and other languages, plus Canvas.",
     placeholder: "https://www.webtoons.com/en/…/list?title_no=…",
     hint: "Copy a series page (<code>…/list?title_no=…</code>) or any episode link." },
+  { id: "naverblog", name: "Naver Blog", icon: "/icons/naverblog.png", color: "#03c75a", host: "blog.naver.com",
+    match: /(^|\.)blog\.naver\.com$/,
+    blurb: "One-shot comics that artists post on their Naver blogs.",
+    placeholder: "https://m.blog.naver.com/…/…",
+    hint: "Copy the link of one blog post that has a comic in it. Each post is one complete comic, so there's no chapter list.",
+    single: true },
   { id: "mangadex", name: "MangaDex", icon: "/icons/mangadex.png", color: "#ff6740", host: "mangadex.org",
     match: /(^|\.)mangadex\.org$/,
     blurb: "Manga in dozens of translation languages.",
@@ -513,6 +519,14 @@ function renderSeries() {
   const m = $("url").value.match(/[?&](?:no|episode_no)=(\d+)/);
   if (series.preselect) selected.add(series.preselect);
   else if (m && nos.includes(+m[1])) selected.add(+m[1]);
+  // one-shot posts (Naver Blog): no chapter picking, just the comic
+  const single = SITES.some(x => x.id === series.site && x.single);
+  $("epToolbar").classList.toggle("hidden", single);
+  $("eps").classList.toggle("hidden", single);
+  if (single) {
+    selected = new Set(series.episodes.map(e => e.no));
+    $("meta").textContent = "One-shot comic";
+  }
   const box = $("eps"); box.innerHTML = "";
   for (const ep of series.episodes) {
     const row = document.createElement("label");

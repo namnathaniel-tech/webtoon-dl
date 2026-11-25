@@ -87,6 +87,8 @@ def backfill_anilist(root: str) -> int:
         meta = _read_meta(d)
         if "anilist" in meta:        # already looked up (None = not on AniList)
             continue
+        if meta.get("site") == "naverblog":   # independent blog comics aren't on AniList
+            continue
         try:
             info = anilist_lookup(meta.get("title") or name)
         except Exception:

@@ -226,6 +226,57 @@ def _webtoons_images(s: Series, no: int) -> tuple[list[str], str]:
     return [html.unescape(u) for u in imgs], "https://www.webtoons.com/"
 
 
+# ---------------------------------------------------------------- site: blog.naver.com (one-shot comics)
+#
+# Artists post complete comics as single blog posts, so one post = one "episode" and there's
+# no chapter list. The mobile post page has every image in order (data-lazy-src);
+# ?type=w2 on the image URL returns the original-size file.
+
+BLOG_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+           "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
+BLOG_REF = "https://m.blog.naver.com/"
+
+
+def _blog_ids(url: str, parsed: urllib.parse.ParseResult) -> tuple[str, str]:
+    q = urllib.parse.parse_qs(parsed.query)
+    if "blogId" in q and "logNo" in q:
+        return q["blogId"][0], q["logNo"][0]
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) >= 2 and parts[1].isdigit():
+        return parts[0], parts[1]
+    raise WebtoonError("Paste a link to one blog post (…blog.naver.com/<blog>/<post number>).")
+
+
+def _blog_page(blog_id: str, log_no: str) -> str:
+    return fetch(f"https://m.blog.naver.com/{blog_id}/{log_no}", BLOG_REF, ua=BLOG_UA).decode("utf-8", "replace")
+
+
+def _naverblog_series(url: str, parsed: urllib.parse.ParseResult) -> Series:
+    blog_id, log_no = _blog_ids(url, parsed)
+    page = _blog_page(blog_id, log_no)
+    m = re.search(r'<meta property="og:title" content="([^"]*)"', page)
+    title = html.unescape(m.group(1)).strip() if m else f"post {log_no}"
+    thumb = re.search(r'<meta property="og:image" content="([^"]*)"', page)
+    if not re.search(r'data-lazy-src="', page):
+        raise WebtoonError("No comic images found in that blog post (it may be private or text only).")
+    s = Series("naverblog", f"{blog_id}-{log_no}", title, f"https://m.blog.naver.com/{blog_id}/{log_no}",
+               html.unescape(thumb.group(1)) if thumb else "")
+    s.episodes = [Episode(1, title)]
+    s.preselect = 1
+    return s
+
+
+def _naverblog_images(s: Series, no: int) -> tuple[list[str], str]:
+    blog_id, log_no = s.title_id.rsplit("-", 1)
+    page = _blog_page(blog_id, log_no)
+    urls = []
+    for u in re.findall(r'data-lazy-src="([^"]+)"', page):
+        u = html.unescape(u).split("?")[0]
+        if "pstatic.net" in u and u not in urls:
+            urls.append(u + "?type=w2")      # original size
+    return urls, BLOG_REF
+
+
 # ---------------------------------------------------------------- site: mangadex.org (official public API)
 
 MD_API = "https://api.mangadex.org"
@@ -334,7 +385,7 @@ def _mangadex_images(s: Series, no: int) -> tuple[list[str], str]:
 
 def source_language(s: Series) -> str:
     """Language the downloaded pages are written in (for the translator)."""
-    if s.site == "naver":
+    if s.site in ("naver", "naverblog"):
         return "ko"
     if s.site == "webtoons":
         m = re.search(r"webtoons\.com/([a-z]{2}(?:-[a-z]+)?)/", s.url)
@@ -348,6 +399,8 @@ def get_series(url: str, lang: str | None = None) -> Series:
         url = "https://" + url
     p = urllib.parse.urlparse(url)
     host = p.netloc.lower()
+    if host in ("blog.naver.com", "m.blog.naver.com"):
+        return _naverblog_series(url, p)
     if host.endswith("comic.naver.com"):
         if host.startswith("m."):
             p = p._replace(netloc="comic.naver.com")
@@ -356,12 +409,14 @@ def get_series(url: str, lang: str | None = None) -> Series:
         return _webtoons_series(url, p)
     if host.endswith("mangadex.org"):
         return _mangadex_series(url, p, lang)
-    raise WebtoonError("Supported sites: comic.naver.com, webtoons.com, mangadex.org.")
+    raise WebtoonError("Supported sites: comic.naver.com, blog.naver.com, webtoons.com, mangadex.org.")
 
 
 def episode_images(s: Series, no: int) -> tuple[list[str], str]:
     if s.site == "naver":
         return _naver_images(s, no)
+    if s.site == "naverblog":
+        return _naverblog_images(s, no)
     if s.site == "mangadex":
         return _mangadex_images(s, no)
     return _webtoons_images(s, no)
@@ -408,7 +463,8 @@ def save_cover(s: Series, series_dir: str) -> str | None:
     u = cover_url(s)
     if not u:
         return None
-    ref = {"naver": "https://comic.naver.com/", "webtoons": "https://www.webtoons.com/"}.get(s.site)
+    ref = {"naver": "https://comic.naver.com/", "webtoons": "https://www.webtoons.com/",
+           "naverblog": BLOG_REF}.get(s.site)
     try:
         data = fetch(u, ref)
     except Exception:
@@ -458,7 +514,7 @@ def download_episode(s: Series, ep: Episode, out_root: str, fmt: str,
 
     if translate:
         import translate as tr
-        strip = s.site in ("naver", "webtoons")   # vertical-scroll strips vs. manga pages
+        strip = s.site in ("naver", "webtoons", "naverblog")   # vertical-scroll strips vs. manga pages
         try:
             files, script = tr.translate_episode([d for _, d in files], s.title, series_dir,
                                                  ep.title or f"#{ep.no}", strip, on_translate,
